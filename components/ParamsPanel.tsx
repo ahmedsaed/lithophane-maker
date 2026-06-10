@@ -61,10 +61,37 @@ export default function ParamsPanel() {
         label="Post size"
         unit=" mm"
         value={params.postSize}
-        min={3}
-        max={12}
+        min={4}
+        max={16}
         step={0.5}
         onChange={(v) => set({ postSize: v })}
+      />
+      <Slider
+        label="Bottom thickness"
+        unit=" mm"
+        value={params.bottomThickness}
+        min={1.5}
+        max={6}
+        step={0.5}
+        onChange={(v) => set({ bottomThickness: v })}
+      />
+      <Slider
+        label="Top rail height"
+        unit=" mm"
+        value={params.railHeight}
+        min={4}
+        max={16}
+        step={0.5}
+        onChange={(v) => set({ railHeight: v })}
+      />
+      <Slider
+        label="Top rail depth"
+        unit=" mm"
+        value={params.railDepth}
+        min={3}
+        max={14}
+        step={0.5}
+        onChange={(v) => set({ railDepth: v })}
       />
       <Slider
         label="Panel thickness"

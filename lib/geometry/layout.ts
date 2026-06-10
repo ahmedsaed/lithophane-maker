@@ -1,30 +1,40 @@
 import type { Params, PanelSlot } from './types';
 
 /**
- * Derived dimensions shared by the frame, panels and base so every part fits.
- * Cube is centred at the origin, edges along X/Y/Z, spanning ±cubeSize/2.
- * Z is up. Side faces are ±X and ±Y; the top is +Z; the bottom (−Z) is open.
+ * Derived dimensions shared by the frame, side panels and lid so every part
+ * fits. Cube is centred at the origin, edges along X/Y/Z, spanning ±cubeSize/2.
+ * Z is up. Side faces are ±X and ±Y; the lid is +Z; the bottom (−Z) is a solid
+ * floor printed with the frame (light is inserted through a side opening).
  */
 export interface CubeLayout {
   C: number; // cube outer size
   half: number; // C/2
-  p: number; // post cross-section
-  t: number; // panel thickness
+  p: number; // nominal post size
+  t: number; // side-panel thickness
   clear: number; // groove clearance per side
   engage: number; // how deep a tongue sits inside a groove
+  /** Square corner-post footprint leg length along each face. */
+  cornerReach: number;
+  /** 45° ramp size cut into each post's inner corner. */
+  chamfer: number;
+  bottomThickness: number;
+  railHeight: number;
+  railDepth: number;
+  lidThickness: number;
   /** Distance of a side-panel mid-plane from the cube centre. */
   panelOffset: number;
-  /** Side panel footprint (horizontal x vertical) in its own plane. */
+  /** Side panel footprint (horizontal x vertical). */
   sidePanelW: number;
   sidePanelH: number;
-  /** Top panel footprint (square). */
-  topPanelW: number;
-  /** Centre Z of a side panel. */
+  /** Centre Z of a side panel (its plate). */
   sidePanelCenterZ: number;
-  /** Z of the top panel mid-plane. */
+  /** Lid footprint (square) and mid-plane Z. */
+  lidW: number;
   topPanelZ: number;
-  /** Corner post centres in the XY plane. */
-  postCenters: Array<[number, number]>;
+  /** Centre of each groove from the cube centre, along the face's width axis. */
+  grooveCenter: number;
+  /** Corner signs in the XY plane. */
+  corners: Array<[number, number]>;
 }
 
 export function cubeLayout(params: Params): CubeLayout {
@@ -35,19 +45,23 @@ export function cubeLayout(params: Params): CubeLayout {
   const clear = params.grooveClearance;
   const engage = Math.min(params.tongueWidth, p * 0.7);
 
-  const panelOffset = half - p / 2; // panel mid-plane centred in post depth
-  const sidePanelW = C - 2 * p + 2 * engage; // spans opening + tongue both sides
-  const sidePanelH = C - p - engage; // under top rail, above base
-  const sidePanelCenterZ = (engage - p) / 2;
-  const topPanelW = C - 2 * p + 2 * engage;
-  const topPanelZ = half - p / 2;
+  const cornerReach = Math.min(Math.max(p * 1.8, p), C * 0.35);
+  const chamfer = Math.min(p * 0.9, cornerReach - p);
 
-  const c = half - p / 2;
-  const postCenters: Array<[number, number]> = [
-    [c, c],
-    [c, -c],
-    [-c, c],
-    [-c, -c],
+  const panelOffset = half - p / 2; // recessed inside the posts
+  const sidePanelW = C - 2 * cornerReach + 2 * engage;
+  const sidePanelH = C - params.bottomThickness - params.railHeight;
+  const sidePanelCenterZ = (params.bottomThickness - params.railHeight) / 2;
+  const grooveCenter = half - cornerReach + engage / 2;
+
+  const lidW = C - 2 * cornerReach + params.railDepth;
+  const topPanelZ = half - params.lidThickness / 2;
+
+  const corners: Array<[number, number]> = [
+    [1, 1],
+    [1, -1],
+    [-1, 1],
+    [-1, -1],
   ];
 
   return {
@@ -57,17 +71,24 @@ export function cubeLayout(params: Params): CubeLayout {
     t,
     clear,
     engage,
+    cornerReach,
+    chamfer,
+    bottomThickness: params.bottomThickness,
+    railHeight: params.railHeight,
+    railDepth: params.railDepth,
+    lidThickness: params.lidThickness,
     panelOffset,
     sidePanelW,
     sidePanelH,
-    topPanelW,
     sidePanelCenterZ,
+    lidW,
     topPanelZ,
-    postCenters,
+    grooveCenter,
+    corners,
   };
 }
 
-/** The four side faces (top handled separately). */
+/** The four side faces (lid handled separately). */
 export const SIDE_FACES: PanelSlot[] = ['front', 'back', 'right', 'left'];
 
 /** Outward normal axis for each side face. */

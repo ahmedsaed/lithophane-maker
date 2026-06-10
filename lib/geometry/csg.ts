@@ -23,6 +23,21 @@ export function box(
   return b;
 }
 
+/** An axis box rotated about Z by `angle` radians, centred at (cx,cy,cz). */
+export function rotBox(
+  sx: number,
+  sy: number,
+  sz: number,
+  angle: number,
+  c: Vec3 = {},
+): Brush {
+  const b = new Brush(new BoxGeometry(sx, sy, sz));
+  b.position.set(c.x ?? 0, c.y ?? 0, c.z ?? 0);
+  b.rotation.z = angle;
+  b.updateMatrixWorld(true);
+  return b;
+}
+
 /** A Z-aligned cylinder brush (radius, height) centred at (cx,cy,cz). */
 export function cylinderZ(
   radius: number,

@@ -5,8 +5,8 @@ export type PanelSlot = 'front' | 'back' | 'left' | 'right' | 'top';
 
 export const PANEL_SLOTS: PanelSlot[] = ['front', 'back', 'left', 'right', 'top'];
 
-/** The seven printable parts of the assembled cube. */
-export type PartId = PanelSlot | 'frame' | 'base';
+/** The six printable parts of the assembled cube (frame + 4 sides + lid). */
+export type PartId = PanelSlot | 'frame';
 
 /** A grayscale height field sampled on a regular grid. */
 export interface HeightMap {
@@ -23,9 +23,9 @@ export type ReliefDirection = 'inward' | 'outward';
 export interface Params {
   /** Outer edge length of the cube. */
   cubeSize: number;
-  /** Square cross-section of the frame corner posts. */
+  /** Nominal corner-post size; also drives the corner reach/ramp. */
   postSize: number;
-  /** Total plate / tongue thickness of a panel. */
+  /** Total plate / tongue thickness of a side panel. */
   panelThickness: number;
   /** Minimum (brightest) lithophane thickness. */
   lithoMin: number;
@@ -43,16 +43,24 @@ export interface Params {
   previewResolution: number;
   /** Longest-side sample count for exported meshes. */
   exportResolution: number;
-  /** Cable/USB holes in the base plate. */
+  /** Thickness of the solid frame bottom. */
+  bottomThickness: number;
+  /** Height of the top rail carried by each side panel. */
+  railHeight: number;
+  /** How far the top rail extends inward (forms the lid ledge). */
+  railDepth: number;
+  /** Thickness of the top lid panel. */
+  lidThickness: number;
+  /** Cable/USB holes in the solid bottom. */
   cableHoles: CableHole[];
 }
 
 export interface CableHole {
   /** Hole diameter (mm). */
   diameter: number;
-  /** Offset from base centre along X (mm). */
+  /** Offset from bottom centre along X (mm). */
   x: number;
-  /** Offset from base centre along Y (mm). */
+  /** Offset from bottom centre along Y (mm). */
   y: number;
 }
 

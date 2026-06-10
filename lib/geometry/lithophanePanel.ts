@@ -18,6 +18,8 @@ export interface PanelOptions {
   cellsY: number;
   /** Mirror the image horizontally (needed when viewed through the flat side). */
   mirrorX?: boolean;
+  /** +1: relief on +Z (flat back at 0). -1: relief on -Z (flat face on +Z). */
+  reliefSign?: 1 | -1;
 }
 
 /** Bilinear brightness sample with u,v in [0,1] (v measured from image top). */
@@ -56,6 +58,7 @@ export function buildLithophanePanel(opts: PanelOptions): BufferGeometry {
     cellsX,
     cellsY,
     mirrorX = false,
+    reliefSign = 1,
   } = opts;
 
   const nx = Math.max(1, Math.floor(cellsX));
@@ -150,6 +153,23 @@ export function buildLithophanePanel(opts: PanelOptions): BufferGeometry {
   const geom = new BufferGeometry();
   geom.setAttribute('position', new Float32BufferAttribute(positions, 3));
   geom.setIndex(indices);
+
+  if (reliefSign < 0) {
+    // Mirror across the panel plane so the relief lands on -Z; reverse winding
+    // to keep outward normals consistent.
+    geom.scale(1, 1, -1);
+    const idx = geom.getIndex();
+    if (idx) {
+      const a = idx.array as Uint32Array | Uint16Array;
+      for (let i = 0; i < a.length; i += 3) {
+        const tmp = a[i + 1];
+        a[i + 1] = a[i + 2];
+        a[i + 2] = tmp;
+      }
+      idx.needsUpdate = true;
+    }
+  }
+
   geom.computeVertexNormals();
   geom.computeBoundingBox();
   return geom;

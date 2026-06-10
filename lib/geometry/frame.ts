@@ -1,46 +1,55 @@
 import type { BufferGeometry } from 'three';
+import type { Brush } from 'three-bvh-csg';
 import type { Params } from './types';
 import { cubeLayout } from './layout';
-import { box, unionAll, subtractAll, type Vec3 } from './csg';
-import { Brush } from 'three-bvh-csg';
+import { box, rotBox, cylinderZ, unionAll, subtractAll } from './csg';
 
 /**
- * Build the cube frame: four corner posts + four top rails, with vertical
- * grooves for the side panels, a top groove for the lid panel, and corner
- * catch pockets the base-plate hooks snap into. Bottom is left open.
+ * Build the cube frame: four corner posts (square footprint with a 45° ramp
+ * cut into each inner corner) joined to a solid bottom floor, with vertical
+ * grooves for the four side panels and optional cable holes in the floor.
+ *
+ * The top is open and carries no rails — the top rails travel with the side
+ * panels so the sides can drop in from above.
  */
 export function buildFrame(params: Params): BufferGeometry {
   const L = cubeLayout(params);
-  const { C, half, p, t, clear, engage } = L;
+  const { C, half, t, clear, engage, cornerReach, chamfer } = L;
 
-  // --- Solid: posts + top rails ---
+  // --- Solid: corner posts + bottom floor ---
   const solids: Brush[] = [];
-  for (const [cx, cy] of L.postCenters) {
-    solids.push(box(p, p, C, { x: cx, y: cy, z: 0 }));
+  for (const [sx, sy] of L.corners) {
+    const cx = sx * (half - cornerReach / 2);
+    const cy = sy * (half - cornerReach / 2);
+    solids.push(box(cornerReach, cornerReach, C, { x: cx, y: cy, z: 0 }));
   }
-  const railLen = C - 2 * p;
-  const railZ = half - p / 2;
-  solids.push(box(railLen, p, p, { y: half - p / 2, z: railZ })); // +Y rail
-  solids.push(box(railLen, p, p, { y: -(half - p / 2), z: railZ })); // -Y rail
-  solids.push(box(p, railLen, p, { x: half - p / 2, z: railZ })); // +X rail
-  solids.push(box(p, railLen, p, { x: -(half - p / 2), z: railZ })); // -X rail
-
+  solids.push(
+    box(C, C, L.bottomThickness, { z: -half + L.bottomThickness / 2 }),
+  );
   let frame = unionAll(solids);
 
   // --- Cutters ---
   const tools: Brush[] = [];
   const slotW = t + 2 * clear; // across panel thickness
-  const slotD = engage + clear; // groove depth + a touch
-  const grooveCenter = half - p + engage / 2;
+  const slotD = engage + clear; // groove depth
+
+  // Inner-corner ramps (the "wedge" look), constant up the height.
+  for (const [sx, sy] of L.corners) {
+    const ix = sx * (half - cornerReach);
+    const iy = sy * (half - cornerReach);
+    tools.push(
+      rotBox(chamfer, chamfer, C + 2, Math.PI / 4, { x: ix, y: iy, z: 0 }),
+    );
+  }
 
   // Vertical grooves for the four side panels (two posts per face).
-  // ±X faces: grooves run in Z, narrow in X, at the panel's Y edges.
+  // ±X faces: grooves narrow in X, at the panel's Y edges.
   for (const sx of [1, -1]) {
     for (const sy of [1, -1]) {
       tools.push(
         box(slotW, slotD, C, {
           x: sx * L.panelOffset,
-          y: sy * grooveCenter,
+          y: sy * L.grooveCenter,
           z: 0,
         }),
       );
@@ -51,7 +60,7 @@ export function buildFrame(params: Params): BufferGeometry {
     for (const sx of [1, -1]) {
       tools.push(
         box(slotD, slotW, C, {
-          x: sx * grooveCenter,
+          x: sx * L.grooveCenter,
           y: sy * L.panelOffset,
           z: 0,
         }),
@@ -59,23 +68,14 @@ export function buildFrame(params: Params): BufferGeometry {
     }
   }
 
-  // Top groove: recess under each top rail so the lid panel seats.
-  const lidSlotH = t + 2 * clear;
-  const lidZ = L.topPanelZ;
-  const lidEdge = half - p + engage / 2;
-  tools.push(box(L.topPanelW, slotD, lidSlotH, { y: lidEdge, z: lidZ }));
-  tools.push(box(L.topPanelW, slotD, lidSlotH, { y: -lidEdge, z: lidZ }));
-  tools.push(box(slotD, L.topPanelW, lidSlotH, { x: lidEdge, z: lidZ }));
-  tools.push(box(slotD, L.topPanelW, lidSlotH, { x: -lidEdge, z: lidZ }));
-
-  // Corner catch pockets for the base hooks, near the bottom inner corners.
-  const pocket = pocketSpec(L, params);
-  for (const [cx, cy] of L.postCenters) {
+  // Cable/USB holes through the solid floor.
+  for (const hole of params.cableHoles) {
+    const r = Math.max(0.5, hole.diameter / 2);
     tools.push(
-      box(pocket.size, pocket.size, pocket.height, {
-        x: cx - Math.sign(cx) * (p / 2),
-        y: cy - Math.sign(cy) * (p / 2),
-        z: -half + pocket.z,
+      cylinderZ(r, L.bottomThickness + 2, {
+        x: hole.x,
+        y: hole.y,
+        z: -half + L.bottomThickness / 2,
       }),
     );
   }
@@ -85,20 +85,4 @@ export function buildFrame(params: Params): BufferGeometry {
   geom.computeVertexNormals();
   geom.computeBoundingBox();
   return geom;
-}
-
-/** Catch-pocket geometry shared by frame (cut) and base (hook target). */
-export function pocketSpec(
-  L: ReturnType<typeof cubeLayout>,
-  params: Params,
-): { size: number; height: number; z: number; center: Vec3[] } {
-  const size = Math.max(2, params.postSize * 0.5);
-  const height = 3;
-  const z = 6; // up from the bottom rim
-  const center = L.postCenters.map(([cx, cy]) => ({
-    x: cx - Math.sign(cx) * (params.postSize / 2),
-    y: cy - Math.sign(cy) * (params.postSize / 2),
-    z: -L.half + z,
-  }));
-  return { size, height, z, center };
 }

@@ -30,8 +30,10 @@ function Parts() {
 
   const dist = params.cubeSize * 0.7;
 
+  // Model is authored Z-up; rotate the group so it stands upright in the
+  // default Y-up camera.
   return (
-    <>
+    <group rotation={[-Math.PI / 2, 0, 0]}>
       {parts.map((part) => {
         const dir = explodeVector(part.id).multiplyScalar(exploded * dist);
         return (
@@ -50,7 +52,7 @@ function Parts() {
           </mesh>
         );
       })}
-    </>
+    </group>
   );
 }
 
