@@ -45,7 +45,7 @@ export function cubeLayout(params: Params): CubeLayout {
   const clear = params.grooveClearance;
   const engage = Math.min(params.tongueWidth, p * 0.7);
 
-  const cornerReach = Math.min(Math.max(p * 1.8, p), C * 0.35);
+  const cornerReach = Math.min(p * 1.8, C * 0.35);
   const chamfer = Math.min(p * 0.9, cornerReach - p);
 
   const panelOffset = half - p / 2; // recessed inside the posts

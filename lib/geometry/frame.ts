@@ -33,24 +33,27 @@ export function buildFrame(params: Params): BufferGeometry {
   const slotW = t + 2 * clear; // across panel thickness
   const slotD = engage + clear; // groove depth
 
-  // Inner-corner ramps (the "wedge" look), constant up the height.
+  // All vertical cutters start at the top of the solid floor so it stays unbroken.
+  const grooveH = C - L.bottomThickness;
+  const grooveZ = L.bottomThickness / 2;
+
+  // Inner-corner ramps (the "wedge" look), from floor top to above the cube.
   for (const [sx, sy] of L.corners) {
     const ix = sx * (half - cornerReach);
     const iy = sy * (half - cornerReach);
     tools.push(
-      rotBox(chamfer, chamfer, C + 2, Math.PI / 4, { x: ix, y: iy, z: 0 }),
+      rotBox(chamfer, chamfer, grooveH + 2, Math.PI / 4, { x: ix, y: iy, z: grooveZ + 1 }),
     );
   }
 
-  // Vertical grooves for the four side panels (two posts per face).
   // ±X faces: grooves narrow in X, at the panel's Y edges.
   for (const sx of [1, -1]) {
     for (const sy of [1, -1]) {
       tools.push(
-        box(slotW, slotD, C, {
+        box(slotW, slotD, grooveH, {
           x: sx * L.panelOffset,
           y: sy * L.grooveCenter,
-          z: 0,
+          z: grooveZ,
         }),
       );
     }
@@ -59,10 +62,10 @@ export function buildFrame(params: Params): BufferGeometry {
   for (const sy of [1, -1]) {
     for (const sx of [1, -1]) {
       tools.push(
-        box(slotD, slotW, C, {
+        box(slotD, slotW, grooveH, {
           x: sx * L.grooveCenter,
           y: sy * L.panelOffset,
-          z: 0,
+          z: grooveZ,
         }),
       );
     }

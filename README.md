@@ -8,17 +8,20 @@ A lithophane encodes an image as varying material thickness: dark pixels print
 thicker (block more light), light pixels print thinner. Backlit, the image
 appears.
 
-## The 7 printable parts
+## The 6 printable parts
 
 | Part        | Description |
 |-------------|-------------|
-| `frame`     | Corner posts + top rails with vertical grooves (side panels) and a top groove (lid). |
-| `side-*` ×4 | Side lithophane panels with a flat tongue border that rides in the grooves. |
-| `top`       | Lid lithophane panel that slides into the top groove. |
-| `base`      | Snap-fit base plate with cantilever hooks and cable/USB hole(s) for a light. |
+| `frame`     | Corner posts, integrated solid floor, and vertical grooves for the side panels. Cable/USB hole(s) in the floor for a light source. |
+| `side-*` ×4 | Side lithophane panels with a flat tongue border that rides in the grooves. Each carries a top rail that forms the lid ledge. |
+| `top`       | Lid lithophane panel that drops onto the ledge formed by the four side rails. |
 
-Assembly: slide the 4 side panels down into the corner grooves → slide the top
-panel into the top groove → add a light source → clip the base on the bottom.
+Assembly: slide the 4 side panels down into the corner grooves → drop the top
+lid onto the rail ledge → add a light source through the cable hole.
+
+> **Future idea (postponed):** a detachable snap-fit base plate with cantilever
+> hooks, replacing the integrated floor, so the light source can be swapped
+> without disassembling the panels.
 
 ## Tech stack
 
