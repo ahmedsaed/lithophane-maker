@@ -15,11 +15,7 @@ export interface CubeLayout {
   engage: number; // how deep a tongue sits inside a groove
   /** Square corner-post footprint leg length along each face. */
   cornerReach: number;
-  /** 45° ramp size cut into each post's inner corner. */
-  chamfer: number;
   bottomThickness: number;
-  railHeight: number;
-  railDepth: number;
   lidThickness: number;
   /** Distance of a side-panel mid-plane from the cube centre. */
   panelOffset: number;
@@ -48,18 +44,17 @@ export function cubeLayout(params: Params): CubeLayout {
   const engage = Math.min(params.tongueWidth, p * 0.7);
 
   const cornerReach = Math.min(p * 1.8, C * 0.35);
-  const chamfer = Math.min(p * 0.9, cornerReach - p);
 
   const panelOffset = half - p / 2; // recessed inside the posts
   const sidePanelW = C - 2 * cornerReach + 2 * engage;
-  const sidePanelH = C - params.bottomThickness - params.railHeight;
-  const sidePanelCenterZ = (params.bottomThickness - params.railHeight) / 2;
+  // Panels fill from floor top (−half+bottomThickness) to ring bottom (half−lidThickness).
+  const sidePanelH = C - params.bottomThickness - params.lidThickness;
+  const sidePanelCenterZ = (params.bottomThickness - params.lidThickness) / 2;
   const grooveCenter = half - cornerReach + (engage + clear) / 2;
 
-  // Lid must drop through the rail ring (inner opening = panelOffset − t/2 − railDepth)
-  // and rest on the rabbet shelf, so outer edge = ring opening minus one clearance per side.
-  const lidW = 2 * (panelOffset - t / 2 - params.railDepth) - 2 * clear;
   const railW = C - 2 * cornerReach; // post-inner-face to post-inner-face
+  // Lid fits in the frame top ring (opening = railW + 2*clear) with 0.3 mm clearance per side.
+  const lidW = railW;
   const topPanelZ = half - params.lidThickness / 2;
 
   const corners: Array<[number, number]> = [
@@ -77,10 +72,7 @@ export function cubeLayout(params: Params): CubeLayout {
     clear,
     engage,
     cornerReach,
-    chamfer,
     bottomThickness: params.bottomThickness,
-    railHeight: params.railHeight,
-    railDepth: params.railDepth,
     lidThickness: params.lidThickness,
     panelOffset,
     sidePanelW,

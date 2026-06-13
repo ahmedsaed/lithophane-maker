@@ -76,24 +76,6 @@ export default function ParamsPanel() {
         onChange={(v) => set({ bottomThickness: v })}
       />
       <Slider
-        label="Top rail height"
-        unit=" mm"
-        value={params.railHeight}
-        min={4}
-        max={16}
-        step={0.5}
-        onChange={(v) => set({ railHeight: v })}
-      />
-      <Slider
-        label="Top rail depth"
-        unit=" mm"
-        value={params.railDepth}
-        min={3}
-        max={14}
-        step={0.5}
-        onChange={(v) => set({ railDepth: v })}
-      />
-      <Slider
         label="Panel thickness"
         unit=" mm"
         value={params.panelThickness}

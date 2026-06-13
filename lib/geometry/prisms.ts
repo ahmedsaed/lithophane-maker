@@ -9,7 +9,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 /**
  * Extrude a closed 2D polygon (in the XY plane) by `depth` along +Z, centred
- * on Z, then optionally transform it. Used for the wedge-shaped top rails.
+ * on Z, then optionally transform it.
  */
 export function extrudePrism(
   points: Array<[number, number]>,

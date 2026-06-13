@@ -14,8 +14,6 @@ export const DEFAULT_PARAMS: Params = {
   previewResolution: 180,
   exportResolution: 380,
   bottomThickness: 3,
-  railHeight: 9,
-  railDepth: 7,
   lidThickness: 3,
   cableHoles: [{ diameter: 8, x: 0, y: 0 }],
 };

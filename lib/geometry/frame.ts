@@ -2,19 +2,16 @@ import type { BufferGeometry } from 'three';
 import type { Brush } from 'three-bvh-csg';
 import type { Params } from './types';
 import { cubeLayout } from './layout';
-import { box, rotBox, cylinderZ, unionAll, subtractAll } from './csg';
+import { box, cylinderZ, unionAll, subtractAll } from './csg';
 
 /**
- * Build the cube frame: four corner posts (square footprint with a 45° ramp
- * cut into each inner corner) joined to a solid bottom floor, with vertical
- * grooves for the four side panels and optional cable holes in the floor.
- *
- * The top is open and carries no rails — the top rails travel with the side
- * panels so the sides can drop in from above.
+ * Build the cube frame: four corner posts joined to a solid bottom floor, with
+ * vertical grooves for the four side panels, and optional cable holes in the
+ * floor. The top is open — the lid mechanism is TBD.
  */
 export function buildFrame(params: Params): BufferGeometry {
   const L = cubeLayout(params);
-  const { C, half, t, clear, engage, cornerReach, chamfer } = L;
+  const { C, half, t, clear, engage, cornerReach, grooveCenter } = L;
 
   // --- Solid: corner posts + bottom floor ---
   const solids: Brush[] = [];
@@ -32,13 +29,6 @@ export function buildFrame(params: Params): BufferGeometry {
   const tools: Brush[] = [];
   const slotW = t + 2 * clear; // across panel thickness
   const slotD = engage + clear; // groove depth
-
-  // Outer-corner bevels — run the full frame height so the bevel shows on posts and floor.
-  for (const [sx, sy] of L.corners) {
-    tools.push(
-      rotBox(chamfer, chamfer, C + 2, Math.PI / 4, { x: sx * half, y: sy * half, z: 0 }),
-    );
-  }
 
   // All vertical groove cutters start at the top of the solid floor.
   const grooveH = C - L.bottomThickness;
@@ -93,6 +83,15 @@ export function buildFrame(params: Params): BufferGeometry {
         }),
       );
     }
+  }
+
+  // Inner-corner removal: cut the solid excess from the inner corner of each
+  // post, leaving two perpendicular U-channel groove rails joined at the outer
+  // corner. The cutter spans from the post's inner face to the groove slot
+  // back wall (grooveD deep in both axes, centred at grooveCenter).
+  const gi = grooveCenter - guideDepth / 2;
+  for (const [sx, sy] of L.corners) {
+    tools.push(box(grooveD, grooveD, grooveH, { x: sx * gi, y: sy * gi, z: grooveZ }));
   }
 
   // Cable/USB holes through the solid floor.

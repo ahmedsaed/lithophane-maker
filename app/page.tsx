@@ -34,8 +34,8 @@ export default function Home() {
       <aside className="sidebar">
         <h1>Lithophane Cube Maker</h1>
         <p className="subtitle">
-          5 images → a backlit printable cube. Ramped frame with a solid floor,
-          sliding side panels that carry the top rails, and a drop-in lid.
+          5 images → a backlit printable cube. Frame with a solid floor, sliding
+          side panels, and a drop-in lid.
         </p>
 
         <div className="section">

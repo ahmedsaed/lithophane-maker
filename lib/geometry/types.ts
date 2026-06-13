@@ -45,11 +45,7 @@ export interface Params {
   exportResolution: number;
   /** Thickness of the solid frame bottom. */
   bottomThickness: number;
-  /** Height of the top rail carried by each side panel. */
-  railHeight: number;
-  /** How far the top rail extends inward (forms the lid ledge). */
-  railDepth: number;
-  /** Thickness of the top lid panel. */
+  /** Thickness of the top lid panel (also the height of the frame top ring). */
   lidThickness: number;
   /** Cable/USB holes in the solid bottom. */
   cableHoles: CableHole[];

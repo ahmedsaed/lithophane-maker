@@ -2,7 +2,6 @@ import { Matrix4, Vector3, type BufferGeometry } from 'three';
 import type { HeightMap, Params, PanelSlot, PartId, PartMesh } from './types';
 import { cubeLayout, faceNormal, type CubeLayout } from './layout';
 import { buildLithophanePanel, panelCells } from './lithophanePanel';
-import { extrudePrism, mergeGeoms } from './prisms';
 import { buildFrame } from './frame';
 
 function reliefSign(params: Params): 1 | -1 {
@@ -35,50 +34,6 @@ function buildSidePlate(
   // one full thickness inward of where it should be.
   geom.translate(0, 0, (-L.t / 2) * reliefSign(params));
   return geom;
-}
-
-/**
- * Build the wedge-shaped top rail carried by a side panel. In local frame the
- * plate lies in XY with the cube interior at −Z; the rail rises above the
- * plate top (+Y), extends inward (−Z).
- *
- * Width: extruded only across the post-inner-face-to-post-inner-face span
- * (railW = C − 2·cornerReach). The tongue zones at each end are excluded so
- * the rail ends flush with the post inner faces and never collides with posts
- * during panel insertion from above.
- *
- * Shelf: a 1.5 mm rabbet protrudes inward at ledgeTopY. The lid (sized to fit
- * through the inner wall opening with clear clearance) drops in from above and
- * catches on this rabbet at the correct seating depth.
- */
-function buildSideRail(L: CubeLayout): BufferGeometry {
-  const { t, sidePanelH: H, railHeight, railDepth, lidThickness } = L;
-  const topPlate = H / 2;
-  const peakY = topPlate + railHeight;
-  const ledgeTopY = topPlate + railHeight - lidThickness;
-  const inwardZ = -(t / 2 + railDepth);
-  const shelfInset = 1.5; // rabbet protrudes this far inward past the inner wall
-
-  // Profile in (Y, Z); extruded along local X (panel width = railW).
-  // Inner wall: vertical at inwardZ from peak down to ledge.
-  // Rabbet shelf: horizontal 1.5 mm step inward at ledgeTopY — the lid seats here.
-  // Outward slope: runs from shelf inner edge down to the exterior plate face.
-  const profile: Array<[number, number]> = [
-    [peakY, inwardZ],                   // interior-top peak
-    [ledgeTopY, inwardZ],               // inner wall base / shelf outer edge
-    [ledgeTopY, inwardZ - shelfInset],  // shelf inner edge (rabbet protrudes inward)
-    [topPlate, t / 2],                  // exterior-bottom (joins plate top) — outward slope
-    [topPlate, inwardZ],                // interior-bottom
-  ];
-
-  // Map extrude-geometry axes (a, b, extrude) -> local (X=extrude, Y=a, Z=b).
-  const m = new Matrix4().makeBasis(
-    new Vector3(0, 1, 0),
-    new Vector3(0, 0, 1),
-    new Vector3(1, 0, 0),
-  );
-  // Extrude only across the inner span — keeps rail ends flush with post faces.
-  return extrudePrism(profile, L.railW, m);
 }
 
 /** A complete side part (lithophane plate) in local frame. */
