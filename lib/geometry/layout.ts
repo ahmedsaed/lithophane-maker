@@ -31,6 +31,8 @@ export interface CubeLayout {
   /** Lid footprint (square) and mid-plane Z. */
   lidW: number;
   topPanelZ: number;
+  /** Rail extrusion width — post-inner-face to post-inner-face, avoids corner posts. */
+  railW: number;
   /** Centre of each groove from the cube centre, along the face's width axis. */
   grooveCenter: number;
   /** Corner signs in the XY plane. */
@@ -54,7 +56,10 @@ export function cubeLayout(params: Params): CubeLayout {
   const sidePanelCenterZ = (params.bottomThickness - params.railHeight) / 2;
   const grooveCenter = half - cornerReach + (engage + clear) / 2;
 
-  const lidW = C - 2 * cornerReach + params.railDepth;
+  // Lid must drop through the rail ring (inner opening = panelOffset − t/2 − railDepth)
+  // and rest on the rabbet shelf, so outer edge = ring opening minus one clearance per side.
+  const lidW = 2 * (panelOffset - t / 2 - params.railDepth) - 2 * clear;
+  const railW = C - 2 * cornerReach; // post-inner-face to post-inner-face
   const topPanelZ = half - params.lidThickness / 2;
 
   const corners: Array<[number, number]> = [
@@ -83,6 +88,7 @@ export function cubeLayout(params: Params): CubeLayout {
     sidePanelCenterZ,
     lidW,
     topPanelZ,
+    railW,
     grooveCenter,
     corners,
   };
