@@ -52,7 +52,7 @@ export function cubeLayout(params: Params): CubeLayout {
   const sidePanelW = C - 2 * cornerReach + 2 * engage;
   const sidePanelH = C - params.bottomThickness - params.railHeight;
   const sidePanelCenterZ = (params.bottomThickness - params.railHeight) / 2;
-  const grooveCenter = half - cornerReach + engage / 2;
+  const grooveCenter = half - cornerReach + (engage + clear) / 2;
 
   const lidW = C - 2 * cornerReach + params.railDepth;
   const topPanelZ = half - params.lidThickness / 2;

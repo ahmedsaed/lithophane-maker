@@ -37,8 +37,9 @@ function buildSidePlate(
 /**
  * Build the wedge-shaped top rail carried by a side panel. In local frame the
  * plate lies in XY with the cube interior at −Z; the rail rises above the
- * plate top (+Y), extends inward (−Z), and its top edge ramps down from the
- * proud exterior edge to an inner ledge the lid rests on.
+ * plate top (+Y), extends inward (−Z). The sloped face runs from the interior
+ * ledge (where the lid rests) diagonally down to the exterior plate face, so
+ * the bevel is visible from outside the cube rather than from inside.
  */
 function buildSideRail(L: CubeLayout): BufferGeometry {
   const { t, sidePanelH: H, railHeight, railDepth, lidThickness } = L;
@@ -48,11 +49,13 @@ function buildSideRail(L: CubeLayout): BufferGeometry {
   const inwardZ = -(t / 2 + railDepth);
 
   // Profile in (Y, Z); extruded along local X (panel width).
+  // Peak and interior face are at inwardZ; slope runs from interior ledge down
+  // to the exterior plate face so it reads as an outward-facing bevel.
   const profile: Array<[number, number]> = [
-    [peakY, t / 2], // exterior-top peak
-    [topPlate, t / 2], // exterior-bottom (joins plate top)
+    [peakY, inwardZ], // interior-top peak
+    [ledgeTopY, inwardZ], // interior ledge (lid rests here)
+    [topPlate, t / 2], // exterior-bottom (joins plate top) — outward slope
     [topPlate, inwardZ], // interior-bottom
-    [ledgeTopY, inwardZ], // interior-top ledge (lid rests here)
   ];
 
   // Map extrude-geometry axes (a, b, extrude) -> local (X=extrude, Y=a, Z=b).

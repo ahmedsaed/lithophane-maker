@@ -33,27 +33,43 @@ export function buildFrame(params: Params): BufferGeometry {
   const slotW = t + 2 * clear; // across panel thickness
   const slotD = engage + clear; // groove depth
 
-  // All vertical cutters start at the top of the solid floor so it stays unbroken.
+  // Outer-corner bevels — run the full frame height so the bevel shows on posts and floor.
+  for (const [sx, sy] of L.corners) {
+    tools.push(
+      rotBox(chamfer, chamfer, C + 2, Math.PI / 4, { x: sx * half, y: sy * half, z: 0 }),
+    );
+  }
+
+  // All vertical groove cutters start at the top of the solid floor.
   const grooveH = C - L.bottomThickness;
   const grooveZ = L.bottomThickness / 2;
 
-  // Inner-corner ramps (the "wedge" look), from floor top to above the cube.
-  for (const [sx, sy] of L.corners) {
-    const ix = sx * (half - cornerReach);
-    const iy = sy * (half - cornerReach);
-    tools.push(
-      rotBox(chamfer, chamfer, grooveH + 2, Math.PI / 4, { x: ix, y: iy, z: grooveZ + 1 }),
-    );
-  }
+  // Guide channel: extend groove 2 mm past the post inner face so the slot is
+  // visible from inside the cube and gives the tongue's inner edge clearance.
+  const guideDepth = 2;
+  const grooveD = slotD + guideDepth; // total groove depth including guide channel
+
+  // Lead-in zone: wider opening at the top of each groove for easy alignment.
+  const leadIn = 1.5;  // extra clearance per side at the entry
+  const leadInH = 4;
+  const leadInZ = grooveZ + grooveH / 2 - leadInH / 2; // centred at groove top
 
   // ±X faces: grooves narrow in X, at the panel's Y edges.
   for (const sx of [1, -1]) {
     for (const sy of [1, -1]) {
+      const gy = sy * (L.grooveCenter - guideDepth / 2);
       tools.push(
-        box(slotW, slotD, grooveH, {
+        box(slotW, grooveD, grooveH, {
           x: sx * L.panelOffset,
-          y: sy * L.grooveCenter,
+          y: gy,
           z: grooveZ,
+        }),
+      );
+      tools.push(
+        box(slotW + 2 * leadIn, grooveD + leadIn, leadInH, {
+          x: sx * L.panelOffset,
+          y: gy,
+          z: leadInZ,
         }),
       );
     }
@@ -61,11 +77,19 @@ export function buildFrame(params: Params): BufferGeometry {
   // ±Y faces: grooves narrow in Y, at the panel's X edges.
   for (const sy of [1, -1]) {
     for (const sx of [1, -1]) {
+      const gx = sx * (L.grooveCenter - guideDepth / 2);
       tools.push(
-        box(slotD, slotW, grooveH, {
-          x: sx * L.grooveCenter,
+        box(grooveD, slotW, grooveH, {
+          x: gx,
           y: sy * L.panelOffset,
           z: grooveZ,
+        }),
+      );
+      tools.push(
+        box(grooveD + leadIn, slotW + 2 * leadIn, leadInH, {
+          x: gx,
+          y: sy * L.panelOffset,
+          z: leadInZ,
         }),
       );
     }
