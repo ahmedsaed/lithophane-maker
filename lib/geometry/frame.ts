@@ -1,8 +1,9 @@
-import type { BufferGeometry } from 'three';
+import { Matrix4, type BufferGeometry } from 'three';
 import type { Brush } from 'three-bvh-csg';
 import type { Params } from './types';
 import { cubeLayout } from './layout';
-import { box, rotBox, cylinderZ, unionAll, subtractAll } from './csg';
+import { box, rotBox, cylinderZ, unionAll, subtractAll, brushFrom } from './csg';
+import { extrudePrism } from './prisms';
 
 /**
  * Build the cube frame: four corner posts joined to a solid bottom floor, with
@@ -23,6 +24,7 @@ export function buildFrame(params: Params): BufferGeometry {
   solids.push(
     box(C, C, L.bottomThickness, { z: -half + L.bottomThickness / 2 }),
   );
+
   let frame = unionAll(solids);
 
   // --- Cutters ---
@@ -119,6 +121,46 @@ export function buildFrame(params: Params): BufferGeometry {
   }
 
   frame = subtractAll(frame, tools);
+
+  // Base chamfer: triangular wedge along each panel face sloping from the outer
+  // wall up to the panel face height, hiding the panel's bottom tongue.
+  // Added AFTER subtraction so groove/arm-tip chamfer cutters don't eat into it.
+  const floorTop = -half + L.bottomThickness;
+  const gap = half - L.panelOffset - slotW / 2; // outer wall to groove outer edge (clears panel)
+  if (gap > 0) {
+    const tri: [number, number][] = [[0, 0], [gap, 0], [gap, engage]];
+    // Each matrix: col1=local-X→world, col2=local-Y→world, col3=local-Z→world, col4=origin.
+    // Extrude C (full cube width) so prism spans ±half and merges into corner posts.
+    // +Y face: depth→-Y, along→-X
+    frame = unionAll([frame, brushFrom(extrudePrism(tri, C, new Matrix4().set(
+      0, 0, -1, 0,
+      -1, 0,  0, half,
+      0, 1,  0, floorTop,
+      0, 0,  0, 1,
+    )))]);
+    // -Y face: depth→+Y, along→+X
+    frame = unionAll([frame, brushFrom(extrudePrism(tri, C, new Matrix4().set(
+      0, 0, 1,  0,
+      1, 0, 0, -half,
+      0, 1, 0,  floorTop,
+      0, 0, 0,  1,
+    )))]);
+    // +X face: depth→-X, along→+Y
+    frame = unionAll([frame, brushFrom(extrudePrism(tri, C, new Matrix4().set(
+      -1, 0, 0, half,
+      0,  0, 1, 0,
+      0,  1, 0, floorTop,
+      0,  0, 0, 1,
+    )))]);
+    // -X face: depth→+X, along→-Y
+    frame = unionAll([frame, brushFrom(extrudePrism(tri, C, new Matrix4().set(
+      1, 0,  0, -half,
+      0, 0, -1,  0,
+      0, 1,  0,  floorTop,
+      0, 0,  0,  1,
+    )))]);
+  }
+
   const geom = frame.geometry as BufferGeometry;
   geom.computeVertexNormals();
   geom.computeBoundingBox();

@@ -1,4 +1,4 @@
-import { BoxGeometry, CylinderGeometry } from 'three';
+import { BoxGeometry, BufferGeometry, CylinderGeometry } from 'three';
 import { Brush, Evaluator, ADDITION, SUBTRACTION } from 'three-bvh-csg';
 
 const evaluator = new Evaluator();
@@ -63,6 +63,13 @@ export function subtract(a: Brush, b: Brush): Brush {
   const r = evaluator.evaluate(a, b, SUBTRACTION);
   r.updateMatrixWorld(true);
   return r;
+}
+
+/** Wrap any BufferGeometry in a Brush for CSG operations. */
+export function brushFrom(geom: BufferGeometry): Brush {
+  const b = new Brush(geom);
+  b.updateMatrixWorld(true);
+  return b;
 }
 
 export function unionAll(brushes: Brush[]): Brush {
