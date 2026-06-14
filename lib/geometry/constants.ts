@@ -15,7 +15,7 @@ export const DEFAULT_PARAMS: Params = {
   exportResolution: 380,
   bottomThickness: 3,
   lidThickness: 3,
-  grooveChamfer: 1,
+  grooveChamfer: 2,
   cableHoles: [{ diameter: 8, x: 0, y: 0 }],
 };
 

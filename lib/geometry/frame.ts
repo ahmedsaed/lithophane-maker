@@ -97,7 +97,8 @@ export function buildFrame(params: Params): BufferGeometry {
   // Chamfer the outer arm tips: bevel the vertical edge where the outer cube
   // wall meets the arm's inward-facing side, visible from outside the cube.
   if (params.grooveChamfer > 0) {
-    const cDiag = params.grooveChamfer * Math.SQRT2;
+    const maxChamfer = half - L.panelOffset - slotW / 2; // lip width: outer wall to groove edge
+    const cDiag = Math.min(params.grooveChamfer, maxChamfer) * Math.SQRT2;
     const innerFace = half - cornerReach;
     for (const [sx, sy] of L.corners) {
       tools.push(rotBox(cDiag, cDiag, grooveH, Math.PI / 4, { x: sx * half, y: sy * innerFace, z: grooveZ }));

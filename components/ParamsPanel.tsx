@@ -71,7 +71,7 @@ export default function ParamsPanel() {
         unit=" mm"
         value={params.grooveChamfer}
         min={0}
-        max={3}
+        max={5}
         step={0.5}
         onChange={(v) => set({ grooveChamfer: v })}
       />
