@@ -49,6 +49,8 @@ export interface Params {
   lidThickness: number;
   /** Chamfer size on the outer arm-tip edges of each corner post (mm). */
   grooveChamfer: number;
+  /** Physical resolution: how many mm each source image pixel maps to on the panel. */
+  mmPerPixel: number;
   /** Cable/USB holes in the solid bottom. */
   cableHoles: CableHole[];
 }

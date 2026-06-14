@@ -112,6 +112,15 @@ export default function ParamsPanel() {
         onChange={(v) => set({ lithoMax: v })}
       />
       <Slider
+        label="Resolution"
+        unit=" mm/px"
+        value={params.mmPerPixel}
+        min={0.1}
+        max={1.0}
+        step={0.05}
+        onChange={(v) => set({ mmPerPixel: v })}
+      />
+      <Slider
         label="Groove clearance"
         unit=" mm"
         value={params.grooveClearance}

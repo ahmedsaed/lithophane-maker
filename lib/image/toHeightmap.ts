@@ -25,6 +25,36 @@ export function imageDataToHeightMap(image: ImageData, invert = false): HeightMa
   return { width, height, data: out };
 }
 
+/**
+ * Center-crop a HeightMap to the given target aspect ratio (targetW : targetH).
+ * The largest centered rectangle with that ratio is extracted from the source.
+ */
+export function centerCropHeightMap(
+  hm: HeightMap,
+  targetW: number,
+  targetH: number,
+): HeightMap {
+  const srcAspect = hm.width / hm.height;
+  const tgtAspect = targetW / targetH;
+  let cropW: number, cropH: number;
+  if (srcAspect > tgtAspect) {
+    cropH = hm.height;
+    cropW = Math.max(1, Math.round(cropH * tgtAspect));
+  } else {
+    cropW = hm.width;
+    cropH = Math.max(1, Math.round(cropW / tgtAspect));
+  }
+  const x0 = Math.floor((hm.width - cropW) / 2);
+  const y0 = Math.floor((hm.height - cropH) / 2);
+  const out = new Float32Array(cropW * cropH);
+  for (let y = 0; y < cropH; y++) {
+    for (let x = 0; x < cropW; x++) {
+      out[y * cropW + x] = hm.data[(y0 + y) * hm.width + (x0 + x)];
+    }
+  }
+  return { width: cropW, height: cropH, data: out };
+}
+
 /** Sample brightness at integer grid coords (clamped). */
 export function sampleBrightness(hm: HeightMap, x: number, y: number): number {
   const cx = Math.min(hm.width - 1, Math.max(0, x));

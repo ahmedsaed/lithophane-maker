@@ -1,11 +1,28 @@
 import { Matrix4, Vector3, type BufferGeometry } from 'three';
 import type { HeightMap, Params, PanelSlot, PartId, PartMesh } from './types';
 import { cubeLayout, faceNormal, type CubeLayout } from './layout';
-import { buildLithophanePanel, panelCells } from './lithophanePanel';
+import { buildLithophanePanel } from './lithophanePanel';
+import { centerCropHeightMap } from '../image/toHeightmap';
 import { buildFrame } from './frame';
 
 function reliefSign(params: Params): 1 | -1 {
   return params.relief === 'outward' ? 1 : -1;
+}
+
+/** Cell counts driven by mm/pixel, capped at the render resolution limit. */
+function mmPerPixelCells(
+  panelW: number,
+  panelH: number,
+  mmPerPixel: number,
+  resolution: number,
+): { cellsX: number; cellsY: number } {
+  const tX = Math.max(1, Math.round(panelW / mmPerPixel));
+  const tY = Math.max(1, Math.round(panelH / mmPerPixel));
+  const scale = Math.min(1, resolution / Math.max(tX, tY));
+  return {
+    cellsX: Math.max(1, Math.round(tX * scale)),
+    cellsY: Math.max(1, Math.round(tY * scale)),
+  };
 }
 
 /** Build the lithophane plate for a side panel (centred, in local XY). */
@@ -15,7 +32,8 @@ function buildSidePlate(
   L: CubeLayout,
   resolution: number,
 ): BufferGeometry {
-  const { cellsX, cellsY } = panelCells(hm, resolution);
+  const cropped = centerCropHeightMap(hm, L.sidePanelW, L.sidePanelH);
+  const { cellsX, cellsY } = mmPerPixelCells(L.sidePanelW, L.sidePanelH, params.mmPerPixel, resolution);
   const geom = buildLithophanePanel({
     width: L.sidePanelW,
     height: L.sidePanelH,
@@ -23,7 +41,7 @@ function buildSidePlate(
     tongueWidth: L.engage,
     lithoMin: params.lithoMin,
     lithoMax: params.lithoMax,
-    heightMap: hm,
+    heightMap: cropped,
     cellsX,
     cellsY,
     mirrorX: params.relief === 'inward',
@@ -53,7 +71,8 @@ export function buildLidLocal(
   resolution: number,
 ): BufferGeometry {
   const L = cubeLayout(params);
-  const { cellsX, cellsY } = panelCells(hm, resolution);
+  const cropped = centerCropHeightMap(hm, L.lidW, L.lidW);
+  const { cellsX, cellsY } = mmPerPixelCells(L.lidW, L.lidW, params.mmPerPixel, resolution);
   const geom = buildLithophanePanel({
     width: L.lidW,
     height: L.lidW,
@@ -61,7 +80,7 @@ export function buildLidLocal(
     tongueWidth: L.engage,
     lithoMin: params.lithoMin,
     lithoMax: params.lithoMax,
-    heightMap: hm,
+    heightMap: cropped,
     cellsX,
     cellsY,
     mirrorX: params.relief === 'inward',
