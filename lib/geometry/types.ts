@@ -47,6 +47,8 @@ export interface Params {
   bottomThickness: number;
   /** Thickness of the top lid panel (also the height of the frame top ring). */
   lidThickness: number;
+  /** Chamfer size on the outer arm-tip edges of each corner post (mm). */
+  grooveChamfer: number;
   /** Cable/USB holes in the solid bottom. */
   cableHoles: CableHole[];
 }

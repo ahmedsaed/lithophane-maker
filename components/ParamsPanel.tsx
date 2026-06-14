@@ -67,6 +67,15 @@ export default function ParamsPanel() {
         onChange={(v) => set({ postSize: v })}
       />
       <Slider
+        label="Post chamfer"
+        unit=" mm"
+        value={params.grooveChamfer}
+        min={0}
+        max={3}
+        step={0.5}
+        onChange={(v) => set({ grooveChamfer: v })}
+      />
+      <Slider
         label="Bottom thickness"
         unit=" mm"
         value={params.bottomThickness}

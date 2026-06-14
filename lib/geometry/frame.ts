@@ -2,7 +2,7 @@ import type { BufferGeometry } from 'three';
 import type { Brush } from 'three-bvh-csg';
 import type { Params } from './types';
 import { cubeLayout } from './layout';
-import { box, cylinderZ, unionAll, subtractAll } from './csg';
+import { box, rotBox, cylinderZ, unionAll, subtractAll } from './csg';
 
 /**
  * Build the cube frame: four corner posts joined to a solid bottom floor, with
@@ -92,6 +92,17 @@ export function buildFrame(params: Params): BufferGeometry {
   const gi = grooveCenter - guideDepth / 2;
   for (const [sx, sy] of L.corners) {
     tools.push(box(grooveD, grooveD, grooveH, { x: sx * gi, y: sy * gi, z: grooveZ }));
+  }
+
+  // Chamfer the outer arm tips: bevel the vertical edge where the outer cube
+  // wall meets the arm's inward-facing side, visible from outside the cube.
+  if (params.grooveChamfer > 0) {
+    const cDiag = params.grooveChamfer * Math.SQRT2;
+    const innerFace = half - cornerReach;
+    for (const [sx, sy] of L.corners) {
+      tools.push(rotBox(cDiag, cDiag, grooveH, Math.PI / 4, { x: sx * half, y: sy * innerFace, z: grooveZ }));
+      tools.push(rotBox(cDiag, cDiag, grooveH, Math.PI / 4, { x: sx * innerFace, y: sy * half, z: grooveZ }));
+    }
   }
 
   // Cable/USB holes through the solid floor.
