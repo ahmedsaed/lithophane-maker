@@ -124,7 +124,10 @@ export default function ParamsPanel() {
           min={2}
           max={16}
           step={0.5}
-          onChange={(v) => set({ postSize: v })}
+          onChange={(v) => {
+            const newMax = Math.min(6, Math.max(1.2, v - 2 * params.grooveClearance));
+            set({ postSize: v, panelThickness: Math.min(params.panelThickness, newMax) });
+          }}
         />
         <Toggle
           label="Wedge chamfer"
@@ -163,7 +166,10 @@ export default function ParamsPanel() {
           min={0.1}
           max={0.6}
           step={0.05}
-          onChange={(v) => set({ grooveClearance: v })}
+          onChange={(v) => {
+            const newMax = Math.min(6, Math.max(1.2, params.postSize - 2 * v));
+            set({ grooveClearance: v, panelThickness: Math.min(params.panelThickness, newMax) });
+          }}
         />
       </Group>
 

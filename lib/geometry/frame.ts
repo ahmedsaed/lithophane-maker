@@ -2,7 +2,7 @@ import type { BufferGeometry } from 'three';
 import type { Params } from './types';
 import { cubeLayout } from './layout';
 import {
-  mBox, mRotBox, mCylinderZ, mExtrudePrism,
+  mBox, mCylinderZ, mExtrudePrism,
   mUnionAll, mSubtract, mUnion,
   manifoldToGeometry,
 } from './mCsg';
@@ -65,13 +65,24 @@ export function buildFrame(params: Params): BufferGeometry {
     tools.push(mBox(grooveD + eps, grooveD + eps, grooveH, sx * gi, sy * gi, grooveZ));
   }
 
-  // Outer arm-tip chamfers — size = gap (same horizontal footprint as base wedges)
-  if (params.chamfer) {
-    const cDiag     = (half - L.panelOffset - slotW / 2) * Math.SQRT2;
+  // Outer arm-tip chamfers — right triangle engage×gap, same shape as base wedges
+  const gap = half - L.panelOffset - slotW / 2;
+  if (params.chamfer && gap > 0) {
     const innerFace = half - cornerReach;
+    // Triangle: right angle at origin, legs engage (along arm) and gap (across arm toward groove)
+    const triArm: Array<[number, number]> = [[0, 0], [engage, 0], [0, gap]];
     for (const [sx, sy] of L.corners) {
-      tools.push(mRotBox(cDiag, cDiag, grooveH, 45, sx * half,      sy * innerFace, grooveZ));
-      tools.push(mRotBox(cDiag, cDiag, grooveH, 45, sx * innerFace, sy * half,      grooveZ));
+      const sxy = sx * sy;
+      // X arm tip at (sx·half, sy·innerFace)
+      // local X→(−sx,0), local Y→(0,sy), Z_z = −sxy to give det = +1
+      const ZzX = -sxy;
+      tools.push(mExtrudePrism(triArm, grooveH,
+        [-sx,0,0,0, 0,sy,0,0, 0,0,ZzX,0, sx*half, sy*innerFace, grooveZ, 1] as unknown as Mat4));
+      // Y arm tip at (sx·innerFace, sy·half)
+      // local X→(0,−sy), local Y→(sx,0), Z_z = sxy to give det = +1
+      const ZzY = sxy;
+      tools.push(mExtrudePrism(triArm, grooveH,
+        [0,-sy,0,0, sx,0,0,0, 0,0,ZzY,0, sx*innerFace, sy*half, grooveZ, 1] as unknown as Mat4));
     }
   }
 
@@ -86,7 +97,7 @@ export function buildFrame(params: Params): BufferGeometry {
   // ── STEP 4: base-chamfer wedges ────────────────────────────────────────────
   const floorTop     = -half + L.bottomThickness;
   const wedgeOriginZ = floorTop - eps;
-  const gap          = half - L.panelOffset - slotW / 2;
+  // gap already declared above in Step 3
 
   if (params.chamfer && gap > 0) {
     const tri: Array<[number, number]> = [[0, 0], [gap, 0], [gap, engage + eps]];

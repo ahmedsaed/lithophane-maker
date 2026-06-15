@@ -383,3 +383,32 @@ h1 {
 .btn-secondary:hover {
   background: var(--panel) !important;
 }
+
+.btn-sm {
+  width: auto;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ── Export panel ─────────────────────────────────────────────────────────── */
+
+.export-parts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.export-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel-2);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.export-label {
+  font-size: 13px;
+  color: var(--text);
+}
