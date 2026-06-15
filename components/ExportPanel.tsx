@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
 import { fileToImageData } from '@/lib/image/loadImage';
-import { imageDataToHeightMap } from '@/lib/image/toHeightmap';
+import { imageDataToHeightMap, cropHeightMap } from '@/lib/image/toHeightmap';
 import { exportPartsZip } from '@/lib/export/exportZip';
 import type { HeightMap, PanelSlot } from '@/lib/geometry/types';
 
@@ -24,7 +24,16 @@ export default function ExportPanel() {
         const d = slots[slot];
         if (!d) continue;
         const img = await fileToImageData(d.file, params.exportResolution);
-        heightMaps[slot] = imageDataToHeightMap(img, params.invert);
+        let hm = imageDataToHeightMap(img, {
+          invert: params.invert,
+          grayscaleMode: params.grayscaleMode,
+          brightness: params.lithoBrightness,
+          contrast: params.lithoContrast,
+          autoContrast: params.lithoAutoContrast,
+          sharpen: params.lithoSharpen,
+        });
+        if (d.crop) hm = cropHeightMap(hm, d.crop);
+        heightMaps[slot] = hm;
       }
       await exportPartsZip(heightMaps, params, setStatus);
       setStatus('Downloaded lithophane-cube.zip');

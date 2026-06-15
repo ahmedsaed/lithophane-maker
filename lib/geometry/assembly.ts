@@ -2,7 +2,7 @@ import { Matrix4, Vector3, type BufferGeometry } from 'three';
 import type { HeightMap, Params, PanelSlot, PartId, PartMesh } from './types';
 import { cubeLayout, faceNormal, type CubeLayout } from './layout';
 import { buildLithophanePanel } from './lithophanePanel';
-import { centerCropHeightMap } from '../image/toHeightmap';
+import { centerCropHeightMap, downsampleHeightMap } from '../image/toHeightmap';
 import { buildFrame } from './frame';
 
 function reliefSign(params: Params): 1 | -1 {
@@ -34,6 +34,7 @@ function buildSidePlate(
 ): BufferGeometry {
   const cropped = centerCropHeightMap(hm, L.sidePanelW, L.sidePanelH);
   const { cellsX, cellsY } = mmPerPixelCells(L.sidePanelW, L.sidePanelH, params.mmPerPixel, resolution);
+  const downsampled = downsampleHeightMap(cropped, cellsX, cellsY);
   const geom = buildLithophanePanel({
     width: L.sidePanelW,
     height: L.sidePanelH,
@@ -41,11 +42,12 @@ function buildSidePlate(
     tongueWidth: L.engage,
     lithoMin: params.lithoMin,
     lithoMax: params.lithoMax,
-    heightMap: cropped,
+    heightMap: downsampled,
     cellsX,
     cellsY,
     mirrorX: params.relief === 'inward',
     reliefSign: reliefSign(params),
+    gamma: params.lithoGamma,
   });
   // Center the plate on its midplane. When reliefSign = -1 the geometry was
   // flipped to -Z, so the translate must flip too — otherwise the panel sits
@@ -73,6 +75,7 @@ export function buildLidLocal(
   const L = cubeLayout(params);
   const cropped = centerCropHeightMap(hm, L.lidW, L.lidW);
   const { cellsX, cellsY } = mmPerPixelCells(L.lidW, L.lidW, params.mmPerPixel, resolution);
+  const downsampled = downsampleHeightMap(cropped, cellsX, cellsY);
   const geom = buildLithophanePanel({
     width: L.lidW,
     height: L.lidW,
@@ -80,11 +83,12 @@ export function buildLidLocal(
     tongueWidth: L.engage,
     lithoMin: params.lithoMin,
     lithoMax: params.lithoMax,
-    heightMap: cropped,
+    heightMap: downsampled,
     cellsX,
     cellsY,
     mirrorX: params.relief === 'inward',
     reliefSign: reliefSign(params),
+    gamma: params.lithoGamma,
   });
   geom.translate(0, 0, (-L.lidThickness / 2) * reliefSign(params));
   return geom;

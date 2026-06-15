@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { Params, PanelSlot } from './geometry/types';
+import type { Params, PanelSlot, CropRect } from './geometry/types';
 import { DEFAULT_PARAMS } from './geometry/constants';
 import { fileToImageData, fileToThumbnailUrl } from './image/loadImage';
 
@@ -10,6 +10,8 @@ export interface SlotData {
   thumbnailUrl: string;
   /** Preview-resolution pixels for live mesh generation. */
   imageData: ImageData;
+  /** User-defined crop in normalized [0,1] image coordinates. */
+  crop?: CropRect;
 }
 
 interface State {
@@ -20,6 +22,7 @@ interface State {
   setParams: (patch: Partial<Params>) => void;
   setImage: (slot: PanelSlot, file: File) => Promise<void>;
   removeImage: (slot: PanelSlot) => void;
+  setCrop: (slot: PanelSlot, crop: CropRect | undefined) => void;
 }
 
 export const useStore = create<State>((set, get) => ({
@@ -39,5 +42,10 @@ export const useStore = create<State>((set, get) => ({
     const next = { ...get().slots };
     delete next[slot];
     set({ slots: next });
+  },
+  setCrop: (slot, crop) => {
+    const existing = get().slots[slot];
+    if (!existing) return;
+    set({ slots: { ...get().slots, [slot]: { ...existing, crop } } });
   },
 }));

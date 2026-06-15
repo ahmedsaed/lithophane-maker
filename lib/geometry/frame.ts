@@ -65,11 +65,10 @@ export function buildFrame(params: Params): BufferGeometry {
     tools.push(mBox(grooveD + eps, grooveD + eps, grooveH, sx * gi, sy * gi, grooveZ));
   }
 
-  // Outer arm-tip chamfers
-  if (params.grooveChamfer > 0) {
-    const maxChamfer = half - L.panelOffset - slotW / 2;
-    const cDiag      = Math.min(params.grooveChamfer, maxChamfer) * Math.SQRT2;
-    const innerFace  = half - cornerReach;
+  // Outer arm-tip chamfers — size = gap (same horizontal footprint as base wedges)
+  if (params.chamfer) {
+    const cDiag     = (half - L.panelOffset - slotW / 2) * Math.SQRT2;
+    const innerFace = half - cornerReach;
     for (const [sx, sy] of L.corners) {
       tools.push(mRotBox(cDiag, cDiag, grooveH, 45, sx * half,      sy * innerFace, grooveZ));
       tools.push(mRotBox(cDiag, cDiag, grooveH, 45, sx * innerFace, sy * half,      grooveZ));
@@ -89,7 +88,7 @@ export function buildFrame(params: Params): BufferGeometry {
   const wedgeOriginZ = floorTop - eps;
   const gap          = half - L.panelOffset - slotW / 2;
 
-  if (gap > 0) {
+  if (params.chamfer && gap > 0) {
     const tri: Array<[number, number]> = [[0, 0], [gap, 0], [gap, engage + eps]];
     const W = wedgeOriginZ;
 

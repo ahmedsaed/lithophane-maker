@@ -20,6 +20,8 @@ export interface PanelOptions {
   mirrorX?: boolean;
   /** +1: relief on +Z (flat back at 0). -1: relief on -Z (flat face on +Z). */
   reliefSign?: 1 | -1;
+  /** Gamma exponent for brightness-to-thickness mapping. 1.0 = linear. */
+  gamma?: number;
 }
 
 /** Bilinear brightness sample with u,v in [0,1] (v measured from image top). */
@@ -59,6 +61,7 @@ export function buildLithophanePanel(opts: PanelOptions): BufferGeometry {
     cellsY,
     mirrorX = false,
     reliefSign = 1,
+    gamma = 1.0,
   } = opts;
 
   const nx = Math.max(1, Math.floor(cellsX));
@@ -85,7 +88,7 @@ export function buildLithophanePanel(opts: PanelOptions): BufferGeometry {
       if (mirrorX) u = 1 - u;
       const v = 1 - (y - innerMinY) / (innerMaxY - innerMinY); // image top = +Y
       const b = sample(heightMap, u, v);
-      return Math.min(thickness, brightnessToThickness(b, lithoMin, lithoMax));
+      return Math.min(thickness, brightnessToThickness(b, lithoMin, lithoMax, gamma));
     }
     return thickness;
   };

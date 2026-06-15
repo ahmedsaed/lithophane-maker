@@ -5,8 +5,8 @@ export const DEFAULT_PARAMS: Params = {
   cubeSize: 100,
   postSize: 8,
   panelThickness: 3,
-  lithoMin: 0.8,
-  lithoMax: 3.0,
+  lithoMin: 0.7,
+  lithoMax: 2.8,
   grooveClearance: 0.3,
   tongueWidth: 5,
   invert: false,
@@ -16,8 +16,14 @@ export const DEFAULT_PARAMS: Params = {
   mmPerPixel: 0.2,
   bottomThickness: 3,
   lidThickness: 3,
-  grooveChamfer: 2,
+  chamfer: true,
   cableHoles: [{ diameter: 8, x: 0, y: 0 }],
+  grayscaleMode: 'rec601',
+  lithoBrightness: 0,
+  lithoContrast: 1,
+  lithoAutoContrast: false,
+  lithoGamma: 0.45,
+  lithoSharpen: 0,
 };
 
 /** Per-part preview colours. */

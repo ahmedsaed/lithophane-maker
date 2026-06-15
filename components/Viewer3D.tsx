@@ -5,7 +5,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, GizmoHelper, GizmoViewport } from '@react-three/drei';
 import { ACESFilmicToneMapping } from 'three';
 import { useStore } from '@/lib/store';
-import { imageDataToHeightMap } from '@/lib/image/toHeightmap';
+import { imageDataToHeightMap, cropHeightMap } from '@/lib/image/toHeightmap';
 import { buildAllParts, explodeVector } from '@/lib/geometry/assembly';
 import { PART_COLORS } from '@/lib/geometry/constants';
 import { initManifold, isManifoldReady } from '@/lib/geometry/manifoldInit';
@@ -21,7 +21,18 @@ function Parts() {
     const heightMaps: Partial<Record<PanelSlot, HeightMap>> = {};
     (Object.keys(slots) as PanelSlot[]).forEach((slot) => {
       const d = slots[slot];
-      if (d) heightMaps[slot] = imageDataToHeightMap(d.imageData, params.invert);
+      if (d) {
+        let hm = imageDataToHeightMap(d.imageData, {
+          invert: params.invert,
+          grayscaleMode: params.grayscaleMode,
+          brightness: params.lithoBrightness,
+          contrast: params.lithoContrast,
+          autoContrast: params.lithoAutoContrast,
+          sharpen: params.lithoSharpen,
+        });
+        if (d.crop) hm = cropHeightMap(hm, d.crop);
+        heightMaps[slot] = hm;
+      }
     });
     try {
       return buildAllParts(heightMaps, params, params.previewResolution);

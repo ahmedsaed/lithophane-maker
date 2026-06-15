@@ -19,6 +19,9 @@ export interface HeightMap {
 /** Direction the lithophane relief points relative to the panel plane. */
 export type ReliefDirection = 'inward' | 'outward';
 
+/** Grayscale conversion mode for image-to-heightmap conversion. */
+export type GrayscaleMode = 'rec601' | 'rec709' | 'average' | 'luminosity';
+
 /** All parametric inputs, in millimetres unless noted. */
 export interface Params {
   /** Outer edge length of the cube. */
@@ -47,12 +50,39 @@ export interface Params {
   bottomThickness: number;
   /** Thickness of the top lid panel (also the height of the frame top ring). */
   lidThickness: number;
-  /** Chamfer size on the outer arm-tip edges of each corner post (mm). */
-  grooveChamfer: number;
+  /** Enable chamfers on outer arm-tip edges and base ramp wedges. */
+  chamfer: boolean;
   /** Physical resolution: how many mm each source image pixel maps to on the panel. */
   mmPerPixel: number;
   /** Cable/USB holes in the solid bottom. */
   cableHoles: CableHole[];
+
+  // --- Lithophane image-quality controls ---
+
+  /** Grayscale conversion method. */
+  grayscaleMode: GrayscaleMode;
+  /** Brightness offset applied to luma before thickness mapping [-0.5, 0.5]. */
+  lithoBrightness: number;
+  /** Contrast multiplier applied to luma before thickness mapping [0.5, 2.0]. */
+  lithoContrast: number;
+  /** Stretch the brightness histogram to fill [0, 1] before other adjustments. */
+  lithoAutoContrast: boolean;
+  /**
+   * Gamma exponent applied to brightness before the linear thickness mapping.
+   * Compensates for Beer-Lambert non-linearity of light through PLA.
+   * 0.45 ≈ inverse of sRGB gamma; 1.0 = linear (previous behaviour).
+   */
+  lithoGamma: number;
+  /** Unsharp mask amount [0, 2]. 0 = off. */
+  lithoSharpen: number;
+}
+
+/** A normalized crop rectangle in image space, each value in [0, 1]. */
+export interface CropRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 export interface CableHole {

@@ -1,8 +1,10 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { PANEL_SLOTS, type PanelSlot } from '@/lib/geometry/types';
+import { cubeLayout } from '@/lib/geometry/layout';
+import CropModal from './CropModal';
 
 const LABELS: Record<PanelSlot, string> = {
   front: 'Front',
@@ -12,7 +14,7 @@ const LABELS: Record<PanelSlot, string> = {
   top: 'Top',
 };
 
-function Slot({ slot }: { slot: PanelSlot }) {
+function Slot({ slot, onCrop }: { slot: PanelSlot; onCrop: (slot: PanelSlot) => void }) {
   const data = useStore((s) => s.slots[slot]);
   const setImage = useStore((s) => s.setImage);
   const removeImage = useStore((s) => s.removeImage);
@@ -27,6 +29,16 @@ function Slot({ slot }: { slot: PanelSlot }) {
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={data.thumbnailUrl} alt={LABELS[slot]} />
+          <button
+            className="crop-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCrop(slot);
+            }}
+            aria-label={`Crop ${LABELS[slot]}`}
+          >
+            Crop
+          </button>
           <button
             className="remove"
             onClick={(e) => {
@@ -58,11 +70,44 @@ function Slot({ slot }: { slot: PanelSlot }) {
 }
 
 export default function UploaderGrid() {
+  const [cropSlot, setCropSlot] = useState<PanelSlot | null>(null);
+  const slots = useStore((s) => s.slots);
+  const params = useStore((s) => s.params);
+  const setCrop = useStore((s) => s.setCrop);
+
+  const openCrop = (slot: PanelSlot) => setCropSlot(slot);
+  const closeCrop = () => setCropSlot(null);
+
+  const cropData = cropSlot ? slots[cropSlot] : null;
+
+  const targetAspect = (() => {
+    if (!cropSlot) return 1;
+    const L = cubeLayout(params);
+    return cropSlot === 'top' ? 1 : L.sidePanelW / L.sidePanelH;
+  })();
+
   return (
-    <div className="slot-grid">
-      {PANEL_SLOTS.map((slot) => (
-        <Slot key={slot} slot={slot} />
-      ))}
-    </div>
+    <>
+      <div className="slot-grid">
+        {PANEL_SLOTS.map((slot) => (
+          <Slot key={slot} slot={slot} onCrop={openCrop} />
+        ))}
+      </div>
+
+      {cropSlot && cropData && (
+        <CropModal
+          thumbnailUrl={cropData.thumbnailUrl}
+          imgW={cropData.imageData.width}
+          imgH={cropData.imageData.height}
+          targetAspect={targetAspect}
+          initial={cropData.crop}
+          onConfirm={(crop) => {
+            setCrop(cropSlot, crop);
+            closeCrop();
+          }}
+          onClose={closeCrop}
+        />
+      )}
+    </>
   );
 }

@@ -122,21 +122,34 @@ h1 {
   line-height: 1;
 }
 
-.field {
-  margin-bottom: 12px;
+.crop-btn {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  line-height: 1.4;
 }
 
-.field label {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 4px;
-  color: var(--muted);
+.crop-btn:hover {
+  background: var(--accent-2);
+}
+
+.field {
+  margin-bottom: 10px;
 }
 
 .field input[type='range'] {
   width: 100%;
+  accent-color: var(--accent);
 }
 
+/* Legacy number input (full-width) */
 .field input[type='number'] {
   width: 100%;
   background: var(--panel-2);
@@ -144,6 +157,79 @@ h1 {
   color: var(--text);
   border-radius: 6px;
   padding: 6px 8px;
+}
+
+/* Grouped param settings */
+.param-group {
+  background: var(--panel-2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.param-group-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  gap: 8px;
+}
+
+.field-label {
+  color: var(--muted);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.field-value {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.field-value input[type='number'] {
+  width: 58px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 12px;
+  text-align: right;
+  -moz-appearance: textfield;
+}
+
+.field-value input[type='number']::-webkit-inner-spin-button,
+.field-value input[type='number']::-webkit-outer-spin-button {
+  display: none;
+}
+
+.field-value input[type='number']:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.field-unit {
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 16px;
+}
+
+.field-desc {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 3px 0 0;
+  line-height: 1.4;
 }
 
 .row {
@@ -226,4 +312,74 @@ h1 {
 
 .explode-control input {
   width: 200px;
+}
+
+/* ── Crop modal ─────────────────────────────────────────────────────────── */
+
+.crop-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.crop-modal-hint {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.crop-image-container {
+  position: relative;
+  user-select: none;
+  line-height: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.crop-image-container img {
+  display: block;
+  max-width: 80vw;
+  max-height: 68vh;
+  object-fit: contain;
+  pointer-events: none;
+  border-radius: 4px;
+}
+
+.crop-rect {
+  position: absolute;
+  border: 2px solid var(--accent);
+  cursor: grab;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.52);
+  touch-action: none;
+  border-radius: 2px;
+}
+
+.crop-rect:active {
+  cursor: grabbing;
+}
+
+.crop-modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.crop-modal-actions .btn {
+  width: auto;
+  padding: 8px 20px;
+}
+
+.btn-secondary {
+  background: var(--panel-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+
+.btn-secondary:hover {
+  background: var(--panel) !important;
 }
