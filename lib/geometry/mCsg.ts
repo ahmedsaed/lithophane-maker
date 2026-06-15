@@ -21,7 +21,6 @@ export function manifoldToGeometry(m: Manifold): BufferGeometry {
   const geom = new BufferGeometry();
   geom.setAttribute('position', new BufferAttribute(positions, 3));
   geom.setIndex(new BufferAttribute(triVerts, 1));
-  geom.computeVertexNormals();
   geom.computeBoundingBox();
   return geom;
 }
