@@ -1,168 +1,115 @@
-import { Matrix4, type BufferGeometry } from 'three';
-import type { Brush } from 'three-bvh-csg';
+import type { BufferGeometry } from 'three';
 import type { Params } from './types';
 import { cubeLayout } from './layout';
-import { box, rotBox, cylinderZ, unionAll, subtractAll, brushFrom } from './csg';
-import { extrudePrism } from './prisms';
+import {
+  mBox, mRotBox, mCylinderZ, mExtrudePrism,
+  mUnionAll, mSubtract, mUnion,
+  manifoldToGeometry,
+} from './mCsg';
+import type { Mat4 } from 'manifold-3d';
 
-/**
- * Build the cube frame: four corner posts joined to a solid bottom floor, with
- * vertical grooves for the four side panels, and optional cable holes in the
- * floor. The top is open — the lid mechanism is TBD.
- */
+const eps = 0.02;
+
 export function buildFrame(params: Params): BufferGeometry {
   const L = cubeLayout(params);
   const { C, half, t, clear, engage, cornerReach, grooveCenter } = L;
 
-  // --- Solid: corner posts + bottom floor ---
-  const solids: Brush[] = [];
-  for (const [sx, sy] of L.corners) {
-    const cx = sx * (half - cornerReach / 2);
-    const cy = sy * (half - cornerReach / 2);
-    solids.push(box(cornerReach, cornerReach, C, { x: cx, y: cy, z: 0 }));
-  }
-  solids.push(
-    box(C, C, L.bottomThickness, { z: -half + L.bottomThickness / 2 }),
+  // ── STEP 1: corner posts ────────────────────────────────────────────────────
+  const posts = L.corners.map(([sx, sy]) =>
+    mBox(cornerReach, cornerReach, C,
+         sx * (half - cornerReach / 2),
+         sy * (half - cornerReach / 2),
+         0),
   );
 
-  let frame = unionAll(solids);
+  // ── STEP 2: floor ───────────────────────────────────────────────────────────
+  const floor = mBox(C, C, L.bottomThickness, 0, 0, -half + L.bottomThickness / 2);
 
-  // --- Cutters ---
-  const tools: Brush[] = [];
-  const slotW = t + 2 * clear; // across panel thickness
-  const slotD = engage + clear; // groove depth
+  let frame = mUnionAll([...posts, floor]);
 
-  // All vertical groove cutters start at the top of the solid floor.
-  const grooveH = C - L.bottomThickness;
-  const grooveZ = L.bottomThickness / 2;
-
-  // Guide channel: extend groove 2 mm past the post inner face so the slot is
-  // visible from inside the cube and gives the tongue's inner edge clearance.
+  // ── STEP 3: groove cutters ─────────────────────────────────────────────────
+  const slotW      = t + 2 * clear;
+  const slotD      = engage + clear;
+  // Extend eps past both the floor top and the post top so no cutter face is
+  // coplanar with a frame face — this is critical for manifold output.
+  const grooveH    = C - L.bottomThickness + 2 * eps;
+  const grooveZ    = L.bottomThickness / 2;
   const guideDepth = 2;
-  const grooveD = slotD + guideDepth; // total groove depth including guide channel
+  const grooveD    = slotD + guideDepth;
+  const leadIn     = 1.5;
+  const leadInH    = 4;
+  const leadInZ    = grooveZ + grooveH / 2 - leadInH / 2;
 
-  // Lead-in zone: wider opening at the top of each groove for easy alignment.
-  const leadIn = 1.5;  // extra clearance per side at the entry
-  const leadInH = 4;
-  const leadInZ = grooveZ + grooveH / 2 - leadInH / 2; // centred at groove top
+  const tools = [];
 
-  // ±X faces: grooves narrow in X, at the panel's Y edges.
-  for (const sx of [1, -1]) {
-    for (const sy of [1, -1]) {
-      const gy = sy * (L.grooveCenter - guideDepth / 2);
-      tools.push(
-        box(slotW, grooveD, grooveH, {
-          x: sx * L.panelOffset,
-          y: gy,
-          z: grooveZ,
-        }),
-      );
-      tools.push(
-        box(slotW + 2 * leadIn, grooveD + leadIn, leadInH, {
-          x: sx * L.panelOffset,
-          y: gy,
-          z: leadInZ,
-        }),
-      );
+  // ±X face slots
+  for (const sx of [1, -1] as const) {
+    for (const sy of [1, -1] as const) {
+      const gy = sy * (grooveCenter - guideDepth / 2);
+      tools.push(mBox(slotW,            grooveD,          grooveH, sx * L.panelOffset, gy, grooveZ));
+      tools.push(mBox(slotW + 2*leadIn, grooveD + leadIn, leadInH, sx * L.panelOffset, gy, leadInZ));
     }
   }
-  // ±Y faces: grooves narrow in Y, at the panel's X edges.
-  for (const sy of [1, -1]) {
-    for (const sx of [1, -1]) {
-      const gx = sx * (L.grooveCenter - guideDepth / 2);
-      tools.push(
-        box(grooveD, slotW, grooveH, {
-          x: gx,
-          y: sy * L.panelOffset,
-          z: grooveZ,
-        }),
-      );
-      tools.push(
-        box(grooveD + leadIn, slotW + 2 * leadIn, leadInH, {
-          x: gx,
-          y: sy * L.panelOffset,
-          z: leadInZ,
-        }),
-      );
+  // ±Y face slots
+  for (const sy of [1, -1] as const) {
+    for (const sx of [1, -1] as const) {
+      const gx = sx * (grooveCenter - guideDepth / 2);
+      tools.push(mBox(grooveD,          slotW,            grooveH, gx, sy * L.panelOffset, grooveZ));
+      tools.push(mBox(grooveD + leadIn, slotW + 2*leadIn, leadInH, gx, sy * L.panelOffset, leadInZ));
     }
   }
 
-  // Inner-corner removal: cut the solid excess from the inner corner of each
-  // post, leaving two perpendicular U-channel groove rails joined at the outer
-  // corner. The cutter spans from the post's inner face to the groove slot
-  // back wall (grooveD deep in both axes, centred at grooveCenter).
+  // Inner-corner removal — size grooveD+eps so faces don't coincide with slots.
   const gi = grooveCenter - guideDepth / 2;
   for (const [sx, sy] of L.corners) {
-    tools.push(box(grooveD, grooveD, grooveH, { x: sx * gi, y: sy * gi, z: grooveZ }));
+    tools.push(mBox(grooveD + eps, grooveD + eps, grooveH, sx * gi, sy * gi, grooveZ));
   }
 
-  // Chamfer the outer arm tips: bevel the vertical edge where the outer cube
-  // wall meets the arm's inward-facing side, visible from outside the cube.
+  // Outer arm-tip chamfers
   if (params.grooveChamfer > 0) {
-    const maxChamfer = half - L.panelOffset - slotW / 2; // lip width: outer wall to groove edge
-    const cDiag = Math.min(params.grooveChamfer, maxChamfer) * Math.SQRT2;
-    const innerFace = half - cornerReach;
+    const maxChamfer = half - L.panelOffset - slotW / 2;
+    const cDiag      = Math.min(params.grooveChamfer, maxChamfer) * Math.SQRT2;
+    const innerFace  = half - cornerReach;
     for (const [sx, sy] of L.corners) {
-      tools.push(rotBox(cDiag, cDiag, grooveH, Math.PI / 4, { x: sx * half, y: sy * innerFace, z: grooveZ }));
-      tools.push(rotBox(cDiag, cDiag, grooveH, Math.PI / 4, { x: sx * innerFace, y: sy * half, z: grooveZ }));
+      tools.push(mRotBox(cDiag, cDiag, grooveH, 45, sx * half,      sy * innerFace, grooveZ));
+      tools.push(mRotBox(cDiag, cDiag, grooveH, 45, sx * innerFace, sy * half,      grooveZ));
     }
   }
 
-  // Cable/USB holes through the solid floor.
+  // Cable / USB holes
   for (const hole of params.cableHoles) {
     const r = Math.max(0.5, hole.diameter / 2);
-    tools.push(
-      cylinderZ(r, L.bottomThickness + 2, {
-        x: hole.x,
-        y: hole.y,
-        z: -half + L.bottomThickness / 2,
-      }),
-    );
+    tools.push(mCylinderZ(r, L.bottomThickness + 2 * eps, hole.x, hole.y, -half + L.bottomThickness / 2));
   }
 
-  frame = subtractAll(frame, tools);
+  frame = mSubtract(frame, mUnionAll(tools));
 
-  // Base chamfer: triangular wedge along each panel face sloping from the outer
-  // wall up to the panel face height, hiding the panel's bottom tongue.
-  // Added AFTER subtraction so groove/arm-tip chamfer cutters don't eat into it.
-  const floorTop = -half + L.bottomThickness;
-  const gap = half - L.panelOffset - slotW / 2; // outer wall to groove outer edge (clears panel)
+  // ── STEP 4: base-chamfer wedges ────────────────────────────────────────────
+  const floorTop     = -half + L.bottomThickness;
+  const wedgeOriginZ = floorTop - eps;
+  const gap          = half - L.panelOffset - slotW / 2;
+
   if (gap > 0) {
-    const tri: [number, number][] = [[0, 0], [gap, 0], [gap, engage]];
-    // Each matrix: col1=local-X→world, col2=local-Y→world, col3=local-Z→world, col4=origin.
-    // Extrude C (full cube width) so prism spans ±half and merges into corner posts.
-    // +Y face: depth→-Y, along→-X
-    frame = unionAll([frame, brushFrom(extrudePrism(tri, C, new Matrix4().set(
-      0, 0, -1, 0,
-      -1, 0,  0, half,
-      0, 1,  0, floorTop,
-      0, 0,  0, 1,
-    )))]);
-    // -Y face: depth→+Y, along→+X
-    frame = unionAll([frame, brushFrom(extrudePrism(tri, C, new Matrix4().set(
-      0, 0, 1,  0,
-      1, 0, 0, -half,
-      0, 1, 0,  floorTop,
-      0, 0, 0,  1,
-    )))]);
-    // +X face: depth→-X, along→+Y
-    frame = unionAll([frame, brushFrom(extrudePrism(tri, C, new Matrix4().set(
-      -1, 0, 0, half,
-      0,  0, 1, 0,
-      0,  1, 0, floorTop,
-      0,  0, 0, 1,
-    )))]);
-    // -X face: depth→+X, along→-Y
-    frame = unionAll([frame, brushFrom(extrudePrism(tri, C, new Matrix4().set(
-      1, 0,  0, -half,
-      0, 0, -1,  0,
-      0, 1,  0,  floorTop,
-      0, 0,  0,  1,
-    )))]);
+    const tri: Array<[number, number]> = [[0, 0], [gap, 0], [gap, engage + eps]];
+    const W = wedgeOriginZ;
+
+    // Column-major Mat4 arrays derived from the verified row-major Three.js matrices:
+    //   +Y face: set( 0, 0,-1,   0,   -1, 0, 0, half,   0, 1, 0, W,  0,0,0,1)
+    //   -Y face: set( 0, 0, 1,   0,    1, 0, 0,-half,   0, 1, 0, W,  0,0,0,1)
+    //   +X face: set(-1, 0, 0, half,   0, 0, 1,    0,   0, 1, 0, W,  0,0,0,1)
+    //   -X face: set( 1, 0, 0,-half,   0, 0,-1,    0,   0, 1, 0, W,  0,0,0,1)
+    // Each has det=+1 (proper rotation), so manifold will orient normals outward.
+    const wedgeMats: Mat4[] = [
+      //  col0       col1      col2        col3
+      [ 0,-1,0,0,  0,0,1,0,  -1, 0,0,0,  0,  half, W, 1 ],  // +Y
+      [ 0, 1,0,0,  0,0,1,0,   1, 0,0,0,  0, -half, W, 1 ],  // -Y
+      [-1, 0,0,0,  0,0,1,0,   0, 1,0,0,  half,  0, W, 1 ],  // +X
+      [ 1, 0,0,0,  0,0,1,0,   0,-1,0,0, -half,  0, W, 1 ],  // -X
+    ];
+
+    const wedges = wedgeMats.map((mat) => mExtrudePrism(tri, C, mat));
+    frame = mUnion(frame, mUnionAll(wedges));
   }
 
-  const geom = frame.geometry as BufferGeometry;
-  geom.computeVertexNormals();
-  geom.computeBoundingBox();
-  return geom;
+  return manifoldToGeometry(frame);
 }

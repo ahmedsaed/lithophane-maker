@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, GizmoHelper, GizmoViewport } from '@react-three/drei';
 import { useStore } from '@/lib/store';
 import { imageDataToHeightMap } from '@/lib/image/toHeightmap';
 import { buildAllParts, explodeVector } from '@/lib/geometry/assembly';
 import { PART_COLORS } from '@/lib/geometry/constants';
+import { initManifold, isManifoldReady } from '@/lib/geometry/manifoldInit';
 import type { HeightMap, PanelSlot } from '@/lib/geometry/types';
 
 function Parts() {
@@ -15,6 +16,7 @@ function Parts() {
   const exploded = useStore((s) => s.exploded);
 
   const parts = useMemo(() => {
+    if (!isManifoldReady()) return [];
     const heightMaps: Partial<Record<PanelSlot, HeightMap>> = {};
     (Object.keys(slots) as PanelSlot[]).forEach((slot) => {
       const d = slots[slot];
@@ -30,26 +32,20 @@ function Parts() {
 
   const dist = params.cubeSize * 0.7;
 
-  // Model is authored Z-up; rotate the group so it stands upright in the
-  // default Y-up camera.
   return (
     <group rotation={[-Math.PI / 2, 0, 0]}>
       {parts.map((part) => {
         const dir = explodeVector(part.id).multiplyScalar(exploded * dist);
         return (
-          <mesh
-            key={part.id}
-            geometry={part.geometry}
-            position={[dir.x, dir.y, dir.z]}
-            castShadow
-            receiveShadow
-          >
-            <meshStandardMaterial
-              color={PART_COLORS[part.id] ?? '#cccccc'}
-              roughness={0.7}
-              metalness={0.05}
-            />
-          </mesh>
+          <group key={part.id} position={[dir.x, dir.y, dir.z]}>
+            <mesh geometry={part.geometry} castShadow receiveShadow>
+              <meshStandardMaterial
+                color={PART_COLORS[part.id] ?? '#cccccc'}
+                roughness={0.7}
+                metalness={0.05}
+              />
+            </mesh>
+          </group>
         );
       })}
     </group>
@@ -59,6 +55,11 @@ function Parts() {
 export default function Viewer3D() {
   const cubeSize = useStore((s) => s.params.cubeSize);
   const cam = cubeSize * 1.8;
+  const [manifoldReady, setManifoldReady] = useState(false);
+
+  useEffect(() => {
+    initManifold().then(() => setManifoldReady(true));
+  }, []);
 
   return (
     <Canvas
@@ -67,9 +68,16 @@ export default function Viewer3D() {
       style={{ background: '#0b0d12' }}
     >
       <ambientLight intensity={0.5} />
-      <directionalLight position={[1, 2, 1.5].map((v) => v * cubeSize) as [number, number, number]} intensity={1.2} castShadow />
-      <directionalLight position={[-1, 1, -1].map((v) => v * cubeSize) as [number, number, number]} intensity={0.4} />
-      <Parts />
+      <directionalLight
+        position={[1, 2, 1.5].map((v) => v * cubeSize) as [number, number, number]}
+        intensity={1.2}
+        castShadow
+      />
+      <directionalLight
+        position={[-1, 1, -1].map((v) => v * cubeSize) as [number, number, number]}
+        intensity={0.4}
+      />
+      {manifoldReady && <Parts />}
       <OrbitControls makeDefault enableDamping />
       <GizmoHelper alignment="bottom-right" margin={[60, 60]}>
         <GizmoViewport labelColor="white" axisHeadScale={1} />

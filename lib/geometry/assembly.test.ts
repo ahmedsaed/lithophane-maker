@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { buildFrame } from './frame';
 import { buildAllParts, buildPanelFlat } from './assembly';
 import { DEFAULT_PARAMS } from './constants';
 import { geometryToStlBlob } from '../export/exportStl';
+import { initManifold } from './manifoldInit';
 import type { BufferGeometry } from 'three';
 import type { HeightMap } from './types';
 
@@ -17,6 +18,9 @@ function vertexCount(g: BufferGeometry) {
 }
 
 describe('CSG / merged parts build without throwing', () => {
+  beforeAll(async () => {
+    await initManifold();
+  });
   it('frame has geometry', () => {
     expect(vertexCount(buildFrame(DEFAULT_PARAMS))).toBeGreaterThan(0);
   });
