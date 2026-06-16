@@ -64,6 +64,24 @@ export function buildFrame(params: Params): BufferGeometry {
     tools.push(mBox(grooveD + eps, grooveD + eps, grooveH, sx * gi, sy * gi, grooveZ));
   }
 
+  // Snap grooves — 0.5 mm recesses in the inner corner pocket walls that receive
+  // the lid tab ridges for a click-lock fit when the lid is pressed down.
+  // Position matches ridgeZ in lidFrame.ts: half − bottomThickness + ridgeSize.
+  const ridgeSize       = 0.5;
+  const ridgeProtrusion = ridgeSize * 0.2;                     // matches lidFrame.ts
+  const ridgeH          = ridgeProtrusion * 2 / Math.sqrt(3);  // equilateral height
+  const ridgeW          = slotD * 0.5;
+  const outerEdgeSnap   = gi + grooveD / 2;
+  const snapZ           = half - bottomThickness + ridgeSize;  // centre Z, matches ridgeZ in lidFrame.ts
+
+  for (const [sx, sy] of L.corners) {
+    // Groove bounding box of the equilateral ridge + eps clearance
+    tools.push(mBox(ridgeProtrusion + eps, ridgeW + 2 * eps, ridgeH + 2 * eps,
+      sx * (outerEdgeSnap + (ridgeProtrusion + eps) / 2), sy * grooveCenter, snapZ));
+    tools.push(mBox(ridgeW + 2 * eps, ridgeProtrusion + eps, ridgeH + 2 * eps,
+      sx * grooveCenter, sy * (outerEdgeSnap + (ridgeProtrusion + eps) / 2), snapZ));
+  }
+
   // Outer arm-tip chamfers — right triangle engage×gap, same shape as base wedges
   const gap = half - L.panelOffset - slotW / 2;
   if (params.chamfer && gap > 0) {
