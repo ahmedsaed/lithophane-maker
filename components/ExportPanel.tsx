@@ -8,7 +8,8 @@ import { imageDataToHeightMap, cropHeightMap } from '@/lib/image/toHeightmap';
 import { exportPartsZip } from '@/lib/export/exportZip';
 import { geometryToStlBlob } from '@/lib/export/exportStl';
 import { buildFrame } from '@/lib/geometry/frame';
-import { buildPanelFlat } from '@/lib/geometry/assembly';
+import { buildLidFrame } from '@/lib/geometry/lidFrame';
+import { buildPanelFlat, buildTopPanelFlat } from '@/lib/geometry/assembly';
 import type { HeightMap, PanelSlot } from '@/lib/geometry/types';
 
 const SLOT_LABELS: Record<PanelSlot, string> = {
@@ -16,9 +17,10 @@ const SLOT_LABELS: Record<PanelSlot, string> = {
   back: 'Back panel',
   left: 'Left panel',
   right: 'Right panel',
+  top: 'Top panel',
 };
 
-const SLOT_ORDER: PanelSlot[] = ['front', 'back', 'left', 'right'];
+const SLOT_ORDER: PanelSlot[] = ['front', 'back', 'left', 'right', 'top'];
 
 export default function ExportPanel() {
   const slots = useStore((s) => s.slots);
@@ -59,6 +61,21 @@ export default function ExportPanel() {
     }
   };
 
+  const onExportLid = async () => {
+    setBusy(true);
+    setStatus('Building lid…');
+    try {
+      const blob = geometryToStlBlob(buildLidFrame(params));
+      saveAs(blob, 'lid.stl');
+      setStatus('Downloaded lid.stl');
+    } catch (err) {
+      console.error(err);
+      setStatus('Export failed — see console.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onExportPanel = async (slot: PanelSlot) => {
     setBusy(true);
     const label = SLOT_LABELS[slot];
@@ -66,8 +83,10 @@ export default function ExportPanel() {
     try {
       const hm = await buildSlotHeightMap(slot);
       if (!hm) return;
-      const geom = buildPanelFlat(slot, hm, params, params.exportResolution);
-      const filename = `side-${slot}.stl`;
+      const geom = slot === 'top'
+        ? buildTopPanelFlat(hm, params, params.exportResolution)
+        : buildPanelFlat(slot, hm, params, params.exportResolution);
+      const filename = slot === 'top' ? 'top.stl' : `side-${slot}.stl`;
       saveAs(geometryToStlBlob(geom), filename);
       setStatus(`Downloaded ${filename}`);
     } catch (err) {
@@ -108,6 +127,12 @@ export default function ExportPanel() {
         <div className="export-row">
           <span className="export-label">Frame</span>
           <button className="btn btn-sm" onClick={onExportFrame} disabled={busy}>
+            Download
+          </button>
+        </div>
+        <div className="export-row">
+          <span className="export-label">Lid</span>
+          <button className="btn btn-sm" onClick={onExportLid} disabled={busy}>
             Download
           </button>
         </div>

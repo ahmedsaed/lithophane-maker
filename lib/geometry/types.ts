@@ -1,9 +1,9 @@
 import type { BufferGeometry } from 'three';
 
 /** Which of the cube's openings an image belongs to. */
-export type PanelSlot = 'front' | 'back' | 'left' | 'right';
+export type PanelSlot = 'front' | 'back' | 'left' | 'right' | 'top';
 
-export const PANEL_SLOTS: PanelSlot[] = ['front', 'back', 'left', 'right'];
+export const PANEL_SLOTS: PanelSlot[] = ['front', 'back', 'left', 'right', 'top'];
 
 /** The six printable parts of the assembled cube (frame + 4 side panels + lid). */
 export type PartId = PanelSlot | 'frame' | 'lid';

@@ -57,6 +57,39 @@ function buildSidePlate(
   return geom;
 }
 
+/** Build the lithophane plate for the top panel (flat in local XY, ready to print). */
+function buildTopPlate(
+  hm: HeightMap,
+  params: Params,
+  L: CubeLayout,
+  resolution: number,
+): BufferGeometry {
+  const { topPanelW, topPanelD } = L;
+  const cropped = centerCropHeightMap(hm, topPanelW, topPanelD);
+  const { cellsX, cellsY } = mmPerPixelCells(topPanelW, topPanelD, params.mmPerPixel, resolution);
+  const downsampled = downsampleHeightMap(cropped, cellsX, cellsY);
+  const rs = reliefSign(params);
+  const geom = buildLithophanePanel({
+    width: topPanelW,
+    height: topPanelD,
+    thickness: L.t,
+    tongueWidth: L.engage,
+    lithoMin: params.lithoMin,
+    lithoMax: params.lithoMax,
+    heightMap: downsampled,
+    cellsX,
+    cellsY,
+    // Top panel is viewed from above; light comes from below.
+    // No X-mirror needed regardless of relief direction — the viewer always
+    // looks straight down at the panel (not through it from the far side).
+    mirrorX: false,
+    reliefSign: rs,
+    gamma: params.lithoGamma,
+  });
+  geom.translate(0, 0, (-L.t / 2) * rs);
+  return geom;
+}
+
 /** A complete side part (lithophane plate) in local frame. */
 export function buildSidePartLocal(
   hm: HeightMap,
@@ -65,6 +98,16 @@ export function buildSidePartLocal(
 ): BufferGeometry {
   const L = cubeLayout(params);
   return buildSidePlate(hm, params, L, resolution);
+}
+
+/** Top panel in its own flat (print) orientation — already in the XY plane. */
+export function buildTopPanelFlat(
+  hm: HeightMap,
+  params: Params,
+  resolution: number,
+): BufferGeometry {
+  const L = cubeLayout(params);
+  return buildTopPlate(hm, params, L, resolution);
 }
 
 /** Build a side panel already transformed into assembled cube coordinates. */
@@ -86,6 +129,25 @@ export function buildPanelInPlace(
   local.computeVertexNormals();
   local.computeBoundingBox();
   return local;
+}
+
+/**
+ * Top panel in assembled position: flat in the XY plane, centred in the lid
+ * groove. The panel slides along Y from the open front (−Y) to the back
+ * inner face, so its centre Y = −cornerReach/2.
+ */
+export function buildTopPanelInPlace(
+  hm: HeightMap,
+  params: Params,
+  resolution: number,
+): BufferGeometry {
+  const L = cubeLayout(params);
+  const geom = buildTopPlate(hm, params, L, resolution);
+  // Panel is symmetric: spans [−topPanelD/2, +topPanelD/2], centred at Y = 0.
+  geom.translate(0, 0, L.lidCenterZ);
+  geom.computeVertexNormals();
+  geom.computeBoundingBox();
+  return geom;
 }
 
 /** Build a part in its own flat (print) orientation for STL export. */
@@ -110,12 +172,11 @@ export function buildAllParts(
   ];
   (Object.keys(heightMaps) as PanelSlot[]).forEach((slot) => {
     const hm = heightMaps[slot];
-    if (hm) {
-      parts.push({
-        id: slot,
-        geometry: buildPanelInPlace(slot, hm, params, resolution),
-      });
-    }
+    if (!hm) return;
+    const geometry = slot === 'top'
+      ? buildTopPanelInPlace(hm, params, resolution)
+      : buildPanelInPlace(slot, hm, params, resolution);
+    parts.push({ id: slot, geometry });
   });
   return parts;
 }
@@ -124,5 +185,6 @@ export function buildAllParts(
 export function explodeVector(id: PartId): Vector3 {
   if (id === 'frame') return new Vector3(0, 0, 0);
   if (id === 'lid')   return new Vector3(0, 0, 1);
+  if (id === 'top')   return new Vector3(0, 0, 2); // above the lid
   return new Vector3(...faceNormal(id as PanelSlot));
 }

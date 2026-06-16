@@ -25,16 +25,11 @@ import {
  */
 export function buildLidFrame(params: Params): BufferGeometry {
   const L = cubeLayout(params);
-  const { C, half, t, clear, engage, cornerReach, corners } = L;
+  const { C, half, t, clear, engage, cornerReach, corners, lidThickness, lidCenterZ, topPanelW } = L;
 
-  const eps     = 0.02;
-  const slotW   = t + 2 * clear;            // groove gap height in Z
-  const slotD   = engage + clear;           // groove depth into the rail (radially)
-  const minWall = Math.max(1.5, t * 0.5);  // minimum wall above/below groove
-
-  // Lid is thick enough to hold walls on both sides of the groove.
-  const lidThickness = slotW + 2 * minWall;
-  const lidCenterZ   = half + lidThickness / 2;
+  const eps   = 0.02;
+  const slotW = t + 2 * clear;   // groove gap height in Z
+  const slotD = engage + clear;  // groove depth into the rail (radially)
 
   // ── Corner blocks ──────────────────────────────────────────────────────────
   const cornerBlocks = corners.map(([sx, sy]) =>
@@ -70,17 +65,26 @@ export function buildLidFrame(params: Params): BufferGeometry {
   // Inner-face distance from cube centre (the groove mouth sits here).
   const innerEdge = half - cornerReach;
 
-  // Left/right grooves run from the open front face (Y = −half) to the back
-  // inner face (Y = +innerEdge) only — the back rail needs no groove.
-  // Span length = half + innerEdge = C − cornerReach, centred at −cornerReach/2.
-  const grooveSpanY  = C - cornerReach + 2 * eps;
-  const grooveCentreY = -cornerReach / 2;
+  // Left/right grooves run from the open front face (Y = −half) past the back
+  // inner face (Y = +innerEdge) all the way to the back tongue stop
+  // (Y = innerEdge + engage).  This lets the panel's left/right edges ride
+  // through the back-corner-block area so the panel centres at Y = 0.
+  // Span: half + innerEdge + engage, centred at (innerEdge + engage − half) / 2.
+  const grooveSpanY   = half + innerEdge + engage + 2 * eps;
+  const grooveCentreY = (innerEdge + engage - half) / 2;
 
+  // Extend by 2*eps in the radial direction so the cutter breaks through the
+  // inner-face plane (at X = ±innerEdge) instead of being coplanar with it.
+  // Without this, the inner face is never removed and the groove appears sealed.
   const grooveCutters = [
-    // right (+X) inner face: groove runs along Y, stops at back inner face
-    mBox(slotD, grooveSpanY, slotW,  innerEdge + slotD / 2, grooveCentreY, lidCenterZ),
-    // left  (−X) inner face: groove runs along Y, stops at back inner face
-    mBox(slotD, grooveSpanY, slotW, -innerEdge - slotD / 2, grooveCentreY, lidCenterZ),
+    // right (+X) inner face: groove runs along Y through back-right corner block
+    mBox(slotD + 2 * eps, grooveSpanY, slotW,  innerEdge + slotD / 2, grooveCentreY, lidCenterZ),
+    // left  (−X) inner face: groove runs along Y through back-left corner block
+    mBox(slotD + 2 * eps, grooveSpanY, slotW, -innerEdge - slotD / 2, grooveCentreY, lidCenterZ),
+    // back  (+Y) inner face: groove runs along X, accepts the panel's back tongue.
+    // Extend by 2*eps in Y to break through the back inner face (coplanar guard).
+    // Width spans the full topPanelW so the cutter also covers the corner-block areas.
+    mBox(topPanelW + 2 * eps, slotD + 2 * eps, slotW, 0, innerEdge + slotD / 2, lidCenterZ),
   ];
 
   ring = mSubtract(ring, mUnionAll(grooveCutters));
@@ -128,16 +132,18 @@ export function buildLidFrame(params: Params): BufferGeometry {
     const tabsAndRidges = corners.flatMap(([sx, sy]) => {
       // Ridge on sx outer face — extrudes along −sx·Y, height along +Z, protrudes in sx·X.
       // Col-major Mat4: col0=local-X→sx·X, col1=local-Y→+Z, col2=local-Z→−sx·Y
+      // mExtrudePrism always centres the extrusion on local Z (depth/2 each side),
+      // so the translation must be the CENTRE of the extrusion range — no ±ridgeW/2 offset.
       const ridgeX = mExtrudePrism(triRidge, ridgeW,
         [sx, 0, 0, 0,  0, 0, 1, 0,  0, -sx, 0, 0,
-         sx * outerEdge, sy * tabCentDist + sx * ridgeW / 2, ridgeZ - ridgeH / 2, 1,
+         sx * outerEdge, sy * tabCentDist, ridgeZ - ridgeH / 2, 1,
         ] as unknown as Mat4);
 
       // Ridge on sy outer face — extrudes along sy·X, height along +Z, protrudes in sy·Y.
       // Col-major Mat4: col0=local-X→sy·Y, col1=local-Y→+Z, col2=local-Z→sy·X
       const ridgeY = mExtrudePrism(triRidge, ridgeW,
         [0, sy, 0, 0,  0, 0, 1, 0,  sy, 0, 0, 0,
-         sx * tabCentDist - sy * ridgeW / 2, sy * outerEdge, ridgeZ - ridgeH / 2, 1,
+         sx * tabCentDist, sy * outerEdge, ridgeZ - ridgeH / 2, 1,
         ] as unknown as Mat4);
 
       return [

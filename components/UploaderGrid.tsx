@@ -11,6 +11,7 @@ const LABELS: Record<PanelSlot, string> = {
   back: 'Back',
   left: 'Left',
   right: 'Right',
+  top: 'Top',
 };
 
 function Slot({ slot, onCrop }: { slot: PanelSlot; onCrop: (slot: PanelSlot) => void }) {
@@ -82,6 +83,7 @@ export default function UploaderGrid() {
   const targetAspect = (() => {
     if (!cropSlot) return 1;
     const L = cubeLayout(params);
+    if (cropSlot === 'top') return L.topPanelW / L.topPanelD;
     return L.sidePanelW / L.sidePanelH;
   })();
 

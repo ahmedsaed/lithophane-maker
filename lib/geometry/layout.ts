@@ -29,6 +29,13 @@ export interface CubeLayout {
   grooveCenter: number;
   /** Corner signs in the XY plane. */
   corners: Array<[number, number]>;
+  /** Lid frame total height (Z). */
+  lidThickness: number;
+  /** Centre Z of the lid frame body = centre of the top-panel groove slot. */
+  lidCenterZ: number;
+  /** Top panel footprint: width (X) and depth (Y, slide direction). */
+  topPanelW: number;
+  topPanelD: number;
 }
 
 export function cubeLayout(params: Params): CubeLayout {
@@ -49,6 +56,17 @@ export function cubeLayout(params: Params): CubeLayout {
   const grooveCenter = half - cornerReach + (engage + clear) / 2;
 
   const railW = C - 2 * cornerReach; // post-inner-face to post-inner-face
+
+  // Lid geometry — shared with lidFrame.ts and assembly.ts.
+  const slotW = t + 2 * clear;
+  const minWall = Math.max(1.5, t * 0.5);
+  const lidThickness = slotW + 2 * minWall;
+  const lidCenterZ = half + lidThickness / 2;
+
+  // Top panel: same X groove geometry as sides, symmetric in Y so the panel
+  // centres at Y=0. The back tongue (engage wide) sits in the back-rail groove.
+  const topPanelW = C - 2 * cornerReach + 2 * engage; // = sidePanelW
+  const topPanelD = 2 * (C / 2 - cornerReach + engage); // = topPanelW = sidePanelW
 
   const corners: Array<[number, number]> = [
     [1, 1],
@@ -73,18 +91,23 @@ export function cubeLayout(params: Params): CubeLayout {
     railW,
     grooveCenter,
     corners,
+    lidThickness,
+    lidCenterZ,
+    topPanelW,
+    topPanelD,
   };
 }
 
 /** The four side faces (lid handled separately). */
 export const SIDE_FACES: PanelSlot[] = ['front', 'back', 'right', 'left'];
 
-/** Outward normal axis for each side face. */
+/** Outward normal axis for each face. */
 export function faceNormal(slot: PanelSlot): [number, number, number] {
   switch (slot) {
     case 'front': return [0, -1, 0];
     case 'back':  return [0, 1, 0];
     case 'right': return [1, 0, 0];
     case 'left':  return [-1, 0, 0];
+    case 'top':   return [0, 0, 1];
   }
 }
