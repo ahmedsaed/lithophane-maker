@@ -16,10 +16,9 @@ const SLOT_LABELS: Record<PanelSlot, string> = {
   back: 'Back panel',
   left: 'Left panel',
   right: 'Right panel',
-  top: 'Top / Lid',
 };
 
-const SLOT_ORDER: PanelSlot[] = ['front', 'back', 'left', 'right', 'top'];
+const SLOT_ORDER: PanelSlot[] = ['front', 'back', 'left', 'right'];
 
 export default function ExportPanel() {
   const slots = useStore((s) => s.slots);
@@ -68,7 +67,7 @@ export default function ExportPanel() {
       const hm = await buildSlotHeightMap(slot);
       if (!hm) return;
       const geom = buildPanelFlat(slot, hm, params, params.exportResolution);
-      const filename = slot === 'top' ? 'top.stl' : `side-${slot}.stl`;
+      const filename = `side-${slot}.stl`;
       saveAs(geometryToStlBlob(geom), filename);
       setStatus(`Downloaded ${filename}`);
     } catch (err) {
@@ -129,7 +128,7 @@ export default function ExportPanel() {
       </button>
 
       <div className="status">
-        {status || `${count} of 5 images added — frame always included.`}
+        {status || `${count} of 4 images added — frame always included.`}
       </div>
     </div>
   );

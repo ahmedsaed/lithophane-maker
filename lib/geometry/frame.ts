@@ -12,14 +12,18 @@ const eps = 0.02;
 
 export function buildFrame(params: Params): BufferGeometry {
   const L = cubeLayout(params);
-  const { C, half, t, clear, engage, cornerReach, grooveCenter } = L;
+  const { C, half, t, clear, engage, cornerReach, grooveCenter, bottomThickness } = L;
 
   // ── STEP 1: corner posts ────────────────────────────────────────────────────
+  // Posts run from floor top (−half+bottomThickness) to cube top (+half),
+  // matching the panel height exactly.
+  const postH = C - bottomThickness;
+  const postCenterZ = bottomThickness / 2;
   const posts = L.corners.map(([sx, sy]) =>
-    mBox(cornerReach, cornerReach, C,
+    mBox(cornerReach, cornerReach, postH,
          sx * (half - cornerReach / 2),
          sy * (half - cornerReach / 2),
-         0),
+         postCenterZ),
   );
 
   // ── STEP 2: floor ───────────────────────────────────────────────────────────
@@ -36,9 +40,6 @@ export function buildFrame(params: Params): BufferGeometry {
   const grooveZ    = L.bottomThickness / 2;
   const guideDepth = 2;
   const grooveD    = slotD + guideDepth;
-  const leadIn     = 1.5;
-  const leadInH    = 4;
-  const leadInZ    = grooveZ + grooveH / 2 - leadInH / 2;
 
   const tools = [];
 
@@ -46,16 +47,14 @@ export function buildFrame(params: Params): BufferGeometry {
   for (const sx of [1, -1] as const) {
     for (const sy of [1, -1] as const) {
       const gy = sy * (grooveCenter - guideDepth / 2);
-      tools.push(mBox(slotW,            grooveD,          grooveH, sx * L.panelOffset, gy, grooveZ));
-      tools.push(mBox(slotW + 2*leadIn, grooveD + leadIn, leadInH, sx * L.panelOffset, gy, leadInZ));
+      tools.push(mBox(slotW, grooveD, grooveH, sx * L.panelOffset, gy, grooveZ));
     }
   }
   // ±Y face slots
   for (const sy of [1, -1] as const) {
     for (const sx of [1, -1] as const) {
       const gx = sx * (grooveCenter - guideDepth / 2);
-      tools.push(mBox(grooveD,          slotW,            grooveH, gx, sy * L.panelOffset, grooveZ));
-      tools.push(mBox(grooveD + leadIn, slotW + 2*leadIn, leadInH, gx, sy * L.panelOffset, leadInZ));
+      tools.push(mBox(grooveD, slotW, grooveH, gx, sy * L.panelOffset, grooveZ));
     }
   }
 

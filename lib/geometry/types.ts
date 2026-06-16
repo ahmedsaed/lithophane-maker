@@ -1,11 +1,11 @@
 import type { BufferGeometry } from 'three';
 
 /** Which of the cube's openings an image belongs to. */
-export type PanelSlot = 'front' | 'back' | 'left' | 'right' | 'top';
+export type PanelSlot = 'front' | 'back' | 'left' | 'right';
 
-export const PANEL_SLOTS: PanelSlot[] = ['front', 'back', 'left', 'right', 'top'];
+export const PANEL_SLOTS: PanelSlot[] = ['front', 'back', 'left', 'right'];
 
-/** The six printable parts of the assembled cube (frame + 4 sides + lid). */
+/** The five printable parts of the assembled cube (frame + 4 side panels). */
 export type PartId = PanelSlot | 'frame';
 
 /** A grayscale height field sampled on a regular grid. */
@@ -48,8 +48,6 @@ export interface Params {
   exportResolution: number;
   /** Thickness of the solid frame bottom. */
   bottomThickness: number;
-  /** Thickness of the top lid panel (also the height of the frame top ring). */
-  lidThickness: number;
   /** Enable chamfers on outer arm-tip edges and base ramp wedges. */
   chamfer: boolean;
   /** Physical resolution: how many mm each source image pixel maps to on the panel. */

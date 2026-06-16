@@ -66,35 +66,7 @@ export function buildSidePartLocal(
   return buildSidePlate(hm, params, L, resolution);
 }
 
-/** The lid lithophane plate in local frame (centred in XY). */
-export function buildLidLocal(
-  hm: HeightMap,
-  params: Params,
-  resolution: number,
-): BufferGeometry {
-  const L = cubeLayout(params);
-  const cropped = centerCropHeightMap(hm, L.lidW, L.lidW);
-  const { cellsX, cellsY } = mmPerPixelCells(L.lidW, L.lidW, params.mmPerPixel, resolution);
-  const downsampled = downsampleHeightMap(cropped, cellsX, cellsY);
-  const geom = buildLithophanePanel({
-    width: L.lidW,
-    height: L.lidW,
-    thickness: L.lidThickness,
-    tongueWidth: L.engage,
-    lithoMin: params.lithoMin,
-    lithoMax: params.lithoMax,
-    heightMap: downsampled,
-    cellsX,
-    cellsY,
-    mirrorX: params.relief === 'inward',
-    reliefSign: reliefSign(params),
-    gamma: params.lithoGamma,
-  });
-  geom.translate(0, 0, (-L.lidThickness / 2) * reliefSign(params));
-  return geom;
-}
-
-/** Build a panel/lid already transformed into assembled cube coordinates. */
+/** Build a side panel already transformed into assembled cube coordinates. */
 export function buildPanelInPlace(
   slot: PanelSlot,
   hm: HeightMap,
@@ -102,20 +74,12 @@ export function buildPanelInPlace(
   resolution: number,
 ): BufferGeometry {
   const L = cubeLayout(params);
-  const isTop = slot === 'top';
-  const local = isTop
-    ? buildLidLocal(hm, params, resolution)
-    : buildSidePartLocal(hm, params, resolution);
+  const local = buildSidePartLocal(hm, params, resolution);
 
   const n = new Vector3(...faceNormal(slot));
-  const up = isTop ? new Vector3(0, 1, 0) : new Vector3(0, 0, 1);
-  const right = new Vector3().crossVectors(up, n).normalize();
-  const m = new Matrix4().makeBasis(right, up, n.clone());
-
-  const pos = isTop
-    ? new Vector3(0, 0, L.topPanelZ)
-    : n.clone().multiplyScalar(L.panelOffset).setZ(L.sidePanelCenterZ);
-  m.setPosition(pos);
+  const right = new Vector3().crossVectors(new Vector3(0, 0, 1), n).normalize();
+  const m = new Matrix4().makeBasis(right, new Vector3(0, 0, 1), n.clone());
+  m.setPosition(n.clone().multiplyScalar(L.panelOffset).setZ(L.sidePanelCenterZ));
 
   local.applyMatrix4(m);
   local.computeVertexNormals();
@@ -130,9 +94,7 @@ export function buildPanelFlat(
   params: Params,
   resolution: number,
 ): BufferGeometry {
-  return slot === 'top'
-    ? buildLidLocal(hm, params, resolution)
-    : buildSidePartLocal(hm, params, resolution);
+  return buildSidePartLocal(hm, params, resolution);
 }
 
 /** Build every available part in assembled position. */
@@ -157,6 +119,5 @@ export function buildAllParts(
 /** Direction to push a part when showing the exploded assembly view. */
 export function explodeVector(id: PartId): Vector3 {
   if (id === 'frame') return new Vector3(0, 0, 0);
-  if (id === 'top') return new Vector3(0, 0, 1);
   return new Vector3(...faceNormal(id as PanelSlot));
 }

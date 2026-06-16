@@ -29,14 +29,10 @@ describe('CSG / merged parts build without throwing', () => {
     expect(vertexCount(buildPanelFlat('front', hm, DEFAULT_PARAMS, 60))).toBeGreaterThan(0);
   });
 
-  it('lid builds', () => {
-    expect(vertexCount(buildPanelFlat('top', hm, DEFAULT_PARAMS, 60))).toBeGreaterThan(0);
-  });
-
-  it('buildAllParts returns frame plus provided panels (no base)', () => {
-    const parts = buildAllParts({ front: hm, top: hm }, DEFAULT_PARAMS, 60);
+  it('buildAllParts returns frame plus provided panels', () => {
+    const parts = buildAllParts({ front: hm, back: hm }, DEFAULT_PARAMS, 60);
     const ids = parts.map((p) => p.id).sort();
-    expect(ids).toEqual(['frame', 'front', 'top']);
+    expect(ids).toEqual(['back', 'frame', 'front']);
   });
 
   it('exports a non-empty STL blob', () => {
