@@ -5,8 +5,8 @@ export type PanelSlot = 'front' | 'back' | 'left' | 'right';
 
 export const PANEL_SLOTS: PanelSlot[] = ['front', 'back', 'left', 'right'];
 
-/** The five printable parts of the assembled cube (frame + 4 side panels). */
-export type PartId = PanelSlot | 'frame';
+/** The six printable parts of the assembled cube (frame + 4 side panels + lid). */
+export type PartId = PanelSlot | 'frame' | 'lid';
 
 /** A grayscale height field sampled on a regular grid. */
 export interface HeightMap {

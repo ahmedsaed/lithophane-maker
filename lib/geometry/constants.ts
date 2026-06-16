@@ -32,4 +32,5 @@ export const PART_COLORS: Record<string, string> = {
   left: '#e7c6a5',
   right: '#e7c6a5',
   frame: '#6b7280',
+  lid: '#6b7280',
 };

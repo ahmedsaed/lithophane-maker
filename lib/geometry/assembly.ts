@@ -4,6 +4,7 @@ import { cubeLayout, faceNormal, type CubeLayout } from './layout';
 import { buildLithophanePanel } from './lithophanePanel';
 import { centerCropHeightMap, downsampleHeightMap } from '../image/toHeightmap';
 import { buildFrame } from './frame';
+import { buildLidFrame } from './lidFrame';
 
 function reliefSign(params: Params): 1 | -1 {
   return params.relief === 'outward' ? 1 : -1;
@@ -103,7 +104,10 @@ export function buildAllParts(
   params: Params,
   resolution: number,
 ): PartMesh[] {
-  const parts: PartMesh[] = [{ id: 'frame', geometry: buildFrame(params) }];
+  const parts: PartMesh[] = [
+    { id: 'frame', geometry: buildFrame(params) },
+    { id: 'lid',   geometry: buildLidFrame(params) },
+  ];
   (Object.keys(heightMaps) as PanelSlot[]).forEach((slot) => {
     const hm = heightMaps[slot];
     if (hm) {
@@ -119,5 +123,6 @@ export function buildAllParts(
 /** Direction to push a part when showing the exploded assembly view. */
 export function explodeVector(id: PartId): Vector3 {
   if (id === 'frame') return new Vector3(0, 0, 0);
+  if (id === 'lid')   return new Vector3(0, 0, 1);
   return new Vector3(...faceNormal(id as PanelSlot));
 }
