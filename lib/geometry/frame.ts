@@ -69,8 +69,9 @@ export function buildFrame(params: Params): BufferGeometry {
   const gap = half - L.panelOffset - slotW / 2;
   if (params.chamfer && gap > 0) {
     const innerFace = half - cornerReach;
-    // Triangle: right angle at origin, legs engage (along arm) and gap (across arm toward groove)
-    const triArm: Array<[number, number]> = [[0, 0], [engage, 0], [0, gap]];
+    // Triangle origin is offset by -eps so no vertex lies exactly on a post face —
+    // coplanar cutter/frame faces cause manifold artifacts (same reason grooveH uses +2*eps).
+    const triArm: Array<[number, number]> = [[-eps, -eps], [engage + eps, -eps], [-eps, gap + eps]];
     for (const [sx, sy] of L.corners) {
       const sxy = sx * sy;
       // X arm tip at (sx·half, sy·innerFace)
