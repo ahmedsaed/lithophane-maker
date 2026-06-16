@@ -143,7 +143,7 @@ export default function ParamsPanel() {
           unit=" mm"
           value={params.bottomThickness}
           min={1.5}
-          max={6}
+          max={10}
           step={0.5}
           onChange={(v) => set({ bottomThickness: v })}
         />
