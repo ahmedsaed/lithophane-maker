@@ -301,7 +301,7 @@ export default function ParamsPanel() {
           unit=" mm"
           value={params.cableHoles[0]?.diameter ?? 0}
           min={0}
-          max={20}
+          max={40}
           step={1}
           onChange={(v) =>
             set({ cableHoles: v > 0 ? [{ diameter: v, x: 0, y: 0 }] : [] })
