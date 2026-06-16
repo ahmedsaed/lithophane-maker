@@ -87,7 +87,35 @@ export function buildLidFrame(params: Params): BufferGeometry {
     mBox(topPanelW + 2 * eps, slotD + 2 * eps, slotW, 0, innerEdge + slotD / 2, lidCenterZ),
   ];
 
-  ring = mSubtract(ring, mUnionAll(grooveCutters));
+  // ── Snap pockets ───────────────────────────────────────────────────────────
+  // Small rectangular pockets cut into the top and bottom walls of the left
+  // and right panel grooves, just inside the front opening.  The plug tongue
+  // ridges click into these when the plug is pushed home.
+  //
+  //   snapOffset — distance from the lid front face to the pocket centre in Y
+  //   snapW      — pocket width in Y
+  //   snapDepth  — how far the pocket cuts into the groove wall (in Z)
+  // Pocket dimensions match the triangular ridge in lidPlug.ts:
+  //   ridgeProtrusion = 0.12 mm  →  ridgeH = 2×0.12/√3 ≈ 0.139 mm
+  //   snapDepth  = ridgeProtrusion (pocket exactly as deep as ridge tip)
+  //   snapW      = ridgeH + 2×clear  (ridge base + clearance either side in Y)
+  const snapOffset     = 2.0;
+  const snapRidgeP  = 0.12;                              // plug ridge protrusion (from lidPlug.ts)
+  const snapRidgeH  = snapRidgeP * 2 / Math.sqrt(3);    // equilateral base height
+  const snapW       = snapRidgeH + 2 * clear;
+  const snapDepth   = snapRidgeP;
+  const snapCentY  = -(half - snapOffset);
+  const snapTopZ   = lidCenterZ + slotW / 2 + snapDepth / 2;
+  const snapBotZ   = lidCenterZ - slotW / 2 - snapDepth / 2;
+
+  const snapPockets = [
+    mBox(slotD, snapW, snapDepth,  innerEdge + slotD / 2, snapCentY, snapTopZ),  // right, top
+    mBox(slotD, snapW, snapDepth,  innerEdge + slotD / 2, snapCentY, snapBotZ),  // right, bottom
+    mBox(slotD, snapW, snapDepth, -innerEdge - slotD / 2, snapCentY, snapTopZ),  // left,  top
+    mBox(slotD, snapW, snapDepth, -innerEdge - slotD / 2, snapCentY, snapBotZ),  // left,  bottom
+  ];
+
+  ring = mSubtract(ring, mUnionAll([...grooveCutters, ...snapPockets]));
 
   // ── Alignment tabs ─────────────────────────────────────────────────────────
   // Four square pegs protruding downward from the lid underside (Z = half → half−tabH).

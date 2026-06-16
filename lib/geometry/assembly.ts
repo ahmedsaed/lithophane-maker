@@ -5,6 +5,7 @@ import { buildLithophanePanel } from './lithophanePanel';
 import { centerCropHeightMap, downsampleHeightMap } from '../image/toHeightmap';
 import { buildFrame } from './frame';
 import { buildLidFrame } from './lidFrame';
+import { buildLidPlugInPlace } from './lidPlug';
 
 function reliefSign(params: Params): 1 | -1 {
   return params.relief === 'outward' ? 1 : -1;
@@ -169,6 +170,7 @@ export function buildAllParts(
   const parts: PartMesh[] = [
     { id: 'frame', geometry: buildFrame(params) },
     { id: 'lid',   geometry: buildLidFrame(params) },
+    { id: 'plug',  geometry: buildLidPlugInPlace(params) },
   ];
   (Object.keys(heightMaps) as PanelSlot[]).forEach((slot) => {
     const hm = heightMaps[slot];
@@ -185,6 +187,7 @@ export function buildAllParts(
 export function explodeVector(id: PartId): Vector3 {
   if (id === 'frame') return new Vector3(0, 0, 0);
   if (id === 'lid')   return new Vector3(0, 0, 1);
+  if (id === 'plug')  return new Vector3(0, -1, 1); // out the front opening
   if (id === 'top')   return new Vector3(0, 0, 2); // above the lid
   return new Vector3(...faceNormal(id as PanelSlot));
 }

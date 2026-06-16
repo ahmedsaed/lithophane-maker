@@ -9,6 +9,7 @@ import { exportPartsZip } from '@/lib/export/exportZip';
 import { geometryToStlBlob } from '@/lib/export/exportStl';
 import { buildFrame } from '@/lib/geometry/frame';
 import { buildLidFrame } from '@/lib/geometry/lidFrame';
+import { buildLidPlug } from '@/lib/geometry/lidPlug';
 import { buildPanelFlat, buildTopPanelFlat } from '@/lib/geometry/assembly';
 import type { HeightMap, PanelSlot } from '@/lib/geometry/types';
 
@@ -76,6 +77,21 @@ export default function ExportPanel() {
     }
   };
 
+  const onExportPlug = async () => {
+    setBusy(true);
+    setStatus('Building plug…');
+    try {
+      const blob = geometryToStlBlob(buildLidPlug(params));
+      saveAs(blob, 'plug.stl');
+      setStatus('Downloaded plug.stl');
+    } catch (err) {
+      console.error(err);
+      setStatus('Export failed — see console.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onExportPanel = async (slot: PanelSlot) => {
     setBusy(true);
     const label = SLOT_LABELS[slot];
@@ -133,6 +149,12 @@ export default function ExportPanel() {
         <div className="export-row">
           <span className="export-label">Lid</span>
           <button className="btn btn-sm" onClick={onExportLid} disabled={busy}>
+            Download
+          </button>
+        </div>
+        <div className="export-row">
+          <span className="export-label">Plug</span>
+          <button className="btn btn-sm" onClick={onExportPlug} disabled={busy}>
             Download
           </button>
         </div>

@@ -3,6 +3,7 @@ import { saveAs } from 'file-saver';
 import type { HeightMap, Params, PanelSlot } from '../geometry/types';
 import { buildFrame } from '../geometry/frame';
 import { buildLidFrame } from '../geometry/lidFrame';
+import { buildLidPlug } from '../geometry/lidPlug';
 import { buildPanelFlat, buildTopPanelFlat } from '../geometry/assembly';
 import { geometryToStlBlob } from './exportStl';
 
@@ -15,6 +16,8 @@ Files:
   lid.stl         The top lid frame. Three-sided ring with panel grooves on the
                   inside and alignment tabs that snap into the corner posts.
                   Print face-down with no supports.
+  plug.stl        Closes the open front of the lid after the top panel is in
+                  place. Print face-down.
   side-*.stl      The four side panels (lithophane plates with tongue borders).
                   Print with the plate flat on the bed.
 
@@ -44,6 +47,9 @@ export async function exportPartsZip(
 
   onProgress?.('Building lid…');
   zip.file('lid.stl', geometryToStlBlob(buildLidFrame(params)));
+
+  onProgress?.('Building plug…');
+  zip.file('plug.stl', geometryToStlBlob(buildLidPlug(params)));
 
   for (const slot of Object.keys(heightMaps) as PanelSlot[]) {
     const hm = heightMaps[slot];
