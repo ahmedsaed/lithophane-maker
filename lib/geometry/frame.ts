@@ -13,12 +13,12 @@ const eps = 0.02;
 
 export function buildFrame(params: Params): BufferGeometry {
   const L = cubeLayout(params);
-  const { C, half, t, clear, engage, cornerReach, grooveCenter, tabHeight } = L;
+  const { half, halfZ, wallHeight, t, clear, engage, cornerReach, grooveCenter, tabHeight } = L;
 
   // ── STEP 1: corner posts ────────────────────────────────────────────────────
-  // Posts span the full cube height (−half → +half): the lid caps the top and
+  // Posts span the full wall height (−halfZ → +halfZ): the lid caps the top and
   // the fused base ring caps the bottom, so there is no floor to start above.
-  const postH = C;
+  const postH = wallHeight;
   const posts = L.corners.map(([sx, sy]) =>
     mBox(cornerReach, cornerReach, postH,
          sx * (half - cornerReach / 2),
@@ -33,7 +33,7 @@ export function buildFrame(params: Params): BufferGeometry {
   const slotD      = engage + clear;
   // Run the full post height plus eps past both ends so no cutter face is
   // coplanar with a post face — this is critical for manifold output.
-  const grooveH    = C + 2 * eps;
+  const grooveH    = wallHeight + 2 * eps;
   const grooveZ    = 0;
   const guideDepth = 2;
   const grooveD    = slotD + guideDepth;
@@ -63,13 +63,13 @@ export function buildFrame(params: Params): BufferGeometry {
 
   // Snap grooves — 0.5 mm recesses in the inner corner pocket walls that receive
   // the lid tab ridges for a click-lock fit when the lid is pressed down.
-  // Position matches ridgeZ in lidFrame.ts: half − tabHeight + ridgeSize.
+  // Position matches ridgeZ in lidFrame.ts: halfZ − tabHeight + ridgeSize.
   const ridgeSize       = 0.5;
   const ridgeProtrusion = ridgeSize * 0.2;                     // matches lidFrame.ts
   const ridgeH          = ridgeProtrusion * 2 / Math.sqrt(3);  // equilateral height
   const ridgeW          = slotD * 0.5;
   const outerEdgeSnap   = gi + grooveD / 2;
-  const snapZ           = half - tabHeight + ridgeSize;  // centre Z, matches ridgeZ in lidFrame.ts
+  const snapZ           = halfZ - tabHeight + ridgeSize;  // centre Z, matches ridgeZ in lidFrame.ts
 
   for (const [sx, sy] of L.corners) {
     // Groove bounding box of the equilateral ridge + eps clearance

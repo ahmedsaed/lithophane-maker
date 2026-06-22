@@ -234,7 +234,7 @@ export function buildAllParts(
     { id: 'frame',    geometry: buildFrame(params) },
     { id: 'lid',      geometry: buildLidFrame(params) },
     { id: 'lidPlug',  geometry: buildPlugInPlace(params, L.lidCenterZ) },
-    { id: 'basePlug', geometry: buildPlugInPlace(params, L.baseCenterZ) },
+    { id: 'basePlug', geometry: buildPlugInPlace(params, L.baseCenterZ, true) },
   ];
   (Object.keys(heightMaps) as PanelSlot[]).forEach((slot) => {
     const hm = heightMaps[slot];

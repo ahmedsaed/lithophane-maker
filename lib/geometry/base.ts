@@ -17,5 +17,7 @@ import type { Manifold } from './mCsg';
  * with the rest of the frame before converting to geometry.
  */
 export function buildBase(L: CubeLayout): Manifold {
-  return buildPanelRing(L, L.baseCenterZ, L.baseThickness);
+  // Base prints bottom-down with the rest of the frame, so its bottom face is on
+  // the build plate → bridge −Z.
+  return buildPanelRing(L, L.baseCenterZ, L.baseThickness, -1);
 }

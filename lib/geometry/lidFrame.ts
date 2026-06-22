@@ -18,13 +18,26 @@ import {
  *
  * Used by both the lid (above the cube) and the fused base (below the cube):
  * they are identical apart from their centre Z and the lid's snap tabs.
+ *
+ * `bridgeSide` ties the two front arms together with a thin wall spanning the
+ * front opening, on the build-plate face only (so it needs no supports): +1
+ * bridges the top face (lid, printed upside-down), −1 the bottom face (base,
+ * printed bottom-down). The bridge fills the front opening's build-plate-side
+ * wall up to the groove floor; the panel slides in above it and the plug
+ * (shortened to match) seats on top of it.
  */
-export function buildPanelRing(L: CubeLayout, centerZ: number, thickness: number): Manifold {
+export function buildPanelRing(
+  L: CubeLayout,
+  centerZ: number,
+  thickness: number,
+  bridgeSide: 1 | -1,
+): Manifold {
   const { C, half, t, clear, engage, cornerReach, corners, topPanelW } = L;
 
-  const eps   = 0.02;
-  const slotW = t + 2 * clear;   // groove gap height in Z
-  const slotD = engage + clear;  // groove depth into the rail (radially)
+  const eps     = 0.02;
+  const slotW   = t + 2 * clear;            // groove gap height in Z
+  const slotD   = engage + clear;           // groove depth into the rail (radially)
+  const minWall = (thickness - slotW) / 2;  // wall above/below the groove
 
   // ── Corner blocks ──────────────────────────────────────────────────────────
   const cornerBlocks = corners.map(([sx, sy]) =>
@@ -47,7 +60,18 @@ export function buildPanelRing(L: CubeLayout, centerZ: number, thickness: number
     mBox(cornerReach, railSpan, thickness, -half + cornerReach / 2,  0,                       centerZ), // left  −X
   ];
 
-  let ring = mUnionAll([...cornerBlocks, ...sideRails]);
+  // ── Anti-wobble bridge ──────────────────────────────────────────────────────
+  // Spans the open front (−Y) between the two front corner blocks, filling the
+  // build-plate-side wall up to the groove floor. minWall tall, at the same
+  // depth as the front corner blocks. Ties the front arms together for rigidity
+  // and prints support-free because it sits flat on the build plate.
+  const frontBridge = mBox(
+    railSpan, cornerReach, minWall,
+    0, -half + cornerReach / 2,
+    centerZ + bridgeSide * (slotW / 2 + minWall / 2),
+  );
+
+  let ring = mUnionAll([...cornerBlocks, ...sideRails, frontBridge]);
 
   // ── Groove cutters ─────────────────────────────────────────────────────────
   // Each groove is a horizontal channel on the inner face of its rail.
@@ -122,14 +146,15 @@ export function buildPanelRing(L: CubeLayout, centerZ: number, thickness: number
  */
 export function buildLidFrame(params: Params): BufferGeometry {
   const L = cubeLayout(params);
-  const { half, clear, engage, corners, lidThickness, lidCenterZ } = L;
+  const { halfZ, clear, engage, corners, lidThickness, lidCenterZ } = L;
 
   const slotD = engage + clear;  // groove depth into the rail (radially)
 
-  let ring = buildPanelRing(L, lidCenterZ, lidThickness);
+  // Lid prints upside-down, so its top face is on the build plate → bridge +Z.
+  let ring = buildPanelRing(L, lidCenterZ, lidThickness, 1);
 
   // ── Alignment tabs ─────────────────────────────────────────────────────────
-  // Four square pegs protruding downward from the lid underside (Z = half → half−tabH).
+  // Four square pegs protruding downward from the lid underside (Z = halfZ → halfZ−tabH).
   // Each peg drops into the inner-corner-removal pocket that frame.ts cuts at each
   // corner post (the square void at sx*gi, sy*gi that clears groove intersections).
   //
@@ -157,7 +182,7 @@ export function buildLidFrame(params: Params): BufferGeometry {
   const ridgeProtrusion = ridgeSize * 0.2;                     // 80% smaller radial depth → 0.1 mm
   const ridgeH          = ridgeProtrusion * 2 / Math.sqrt(3);  // equilateral height for that protrusion
   const ridgeW          = slotD / 2;
-  const ridgeZ          = half - tabH + ridgeSize;             // centre Z of groove in frame.ts
+  const ridgeZ          = halfZ - tabH + ridgeSize;            // centre Z of groove in frame.ts
 
   // Equilateral triangle (all angles 60°): pointed bottom and top ramps make it
   // equally easy to snap in and release.  Tip is centred in Z.
@@ -186,7 +211,7 @@ export function buildLidFrame(params: Params): BufferGeometry {
         ] as unknown as Mat4);
 
       return [
-        mBox(tabSize, tabSize, tabH, sx * tabCentDist, sy * tabCentDist, half - tabH / 2),
+        mBox(tabSize, tabSize, tabH, sx * tabCentDist, sy * tabCentDist, halfZ - tabH / 2),
         ridgeX,
         ridgeY,
       ];

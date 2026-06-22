@@ -7,8 +7,12 @@ import type { Params, PanelSlot } from './types';
  * with the frame (light is inserted through a side opening).
  */
 export interface CubeLayout {
-  C: number; // cube outer size
-  half: number; // C/2
+  C: number; // cube footprint size (X, Y)
+  half: number; // C/2 (footprint half-extent)
+  /** Vertical wall height (Z extent of posts/side panels) — equals sidePanelW so sides are square. */
+  wallHeight: number;
+  /** wallHeight/2 — the Z half-extent (top of posts = +halfZ, bottom = −halfZ). */
+  halfZ: number;
   p: number; // nominal post size
   t: number; // side-panel thickness
   clear: number; // groove clearance per side
@@ -62,9 +66,14 @@ export function cubeLayout(params: Params): CubeLayout {
 
   const panelOffset = half - p / 2; // recessed inside the posts
   const sidePanelW = C - 2 * cornerReach + 2 * engage;
-  // Posts and side panels span the full cube height (−half → +half): the lid
-  // caps the top and the fused base ring caps the bottom, so there is no floor.
-  const sidePanelH = C;
+  // The vertical walls are exactly as tall as the side panels are wide, so every
+  // side panel is square — matching the square top/bottom panels. This makes the
+  // object a square-footprint box (cubeSize × cubeSize footprint, but shorter in
+  // Z) rather than a true cube. Posts span the full wall height (−halfZ → +halfZ);
+  // the lid caps the top and the fused base caps the bottom, so there is no floor.
+  const wallHeight = sidePanelW;
+  const halfZ = wallHeight / 2;
+  const sidePanelH = wallHeight;
   const sidePanelCenterZ = 0;
   const grooveCenter = half - cornerReach + (engage + clear) / 2;
 
@@ -73,8 +82,13 @@ export function cubeLayout(params: Params): CubeLayout {
   // Lid geometry — shared with lidFrame.ts and assembly.ts.
   const slotW = t + 2 * clear;
   const minWall = Math.max(1.5, t * 0.5);
-  const lidThickness = slotW + 2 * minWall;
-  const lidCenterZ = half + lidThickness / 2;
+  // Pad the lid/base thickness up to the horizontal corner border
+  // (cornerReach − engage) so the vertical and horizontal borders match and the
+  // object is a true cube: height = wallHeight + 2·lidThickness = C. The max()
+  // keeps a structurally valid lid when the panel is so thick that the minimum
+  // (slotW + 2·minWall) already exceeds the corner border (then it stays a box).
+  const lidThickness = Math.max(slotW + 2 * minWall, cornerReach - engage);
+  const lidCenterZ = halfZ + lidThickness / 2;
 
   // Base ring — an exact mirror of the lid across z = 0, fused to the frame.
   // Sits below the cube so the whole object is symmetric top↔bottom.
@@ -100,6 +114,8 @@ export function cubeLayout(params: Params): CubeLayout {
   return {
     C,
     half,
+    wallHeight,
+    halfZ,
     p,
     t,
     clear,

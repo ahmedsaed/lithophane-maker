@@ -19,7 +19,9 @@ Files:
                   Print face-down with no supports.
   plug.stl        Closes the open front of a ring after its panel is in place.
                   PRINT TWO: one for the lid, one for the base (identical part).
-                  Print face-down.
+                  Print face-down. The lid and base each have a built-in wall
+                  across the front opening on their print side; flip one plug
+                  over (rotate 180°) when fitting it to the base.
   side-*.stl      The four side panels (lithophane plates with tongue borders).
                   Print with the plate flat on the bed.
   top.stl         The top lithophane panel (slides into the lid).

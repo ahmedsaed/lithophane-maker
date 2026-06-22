@@ -25,12 +25,18 @@ export function buildPlug(params: Params): BufferGeometry {
   const slotW     = t + 2 * clear;
   const innerEdge = half - cornerReach;
   const railW     = C - 2 * cornerReach;
+  const minWall   = (lidThickness - slotW) / 2;  // = baseThickness; wall above/below groove
 
-  // ── Main body: exact fit ───────────────────────────────────────────────────
+  // ── Main body ──────────────────────────────────────────────────────────────
+  // The ring's front bridge fills one wall of the opening (the build-plate side),
+  // so the plug omits that wall and seats on top of the bridge. Canonical
+  // orientation omits the +Z (top) wall → matches the lid (bridge on top);
+  // buildPlugInPlace flips it 180° about Y for the base (bridge on the bottom).
   const bodyW = railW;
-  const bodyH = lidThickness;        // = baseThickness (rings share thickness)
+  const bodyH = lidThickness - minWall;  // groove + the non-bridge wall
   const bodyD = cornerReach;
-  const body  = mBox(bodyW, bodyD, bodyH, 0, 0, 0);
+  const bodyZ = -minWall / 2;            // shifted down, leaving the top wall to the bridge
+  const body  = mBox(bodyW, bodyD, bodyH, 0, 0, bodyZ);
 
   // ── Side tongues: exact fit ────────────────────────────────────────────────
   const tongueW  = engage + clear;          // = slotD  (fills groove width)
@@ -90,12 +96,19 @@ export function buildPlug(params: Params): BufferGeometry {
 /**
  * Plug positioned in a ring's front opening, in assembled cube coordinates.
  * `centerZ` is the ring's groove-slot centre (lidCenterZ or baseCenterZ).
+ *
+ * The canonical plug omits its top wall (for the lid, whose bridge is on top).
+ * For the base, set `flip` to rotate it 180° about the Y (insertion) axis so the
+ * omitted wall faces down onto the base's bottom bridge. The plug is symmetric
+ * in X and its ridges sit on the Y axis of rotation, so the same printed part
+ * serves both — you just flip it when fitting the base.
  */
-export function buildPlugInPlace(params: Params, centerZ: number): BufferGeometry {
+export function buildPlugInPlace(params: Params, centerZ: number, flip = false): BufferGeometry {
   const L = cubeLayout(params);
   const { half, cornerReach } = L;
 
   const geom = buildPlug(params);
+  if (flip) geom.rotateY(Math.PI);
   geom.translate(0, -half + cornerReach / 2, centerZ);
   geom.computeVertexNormals();
   geom.computeBoundingBox();
