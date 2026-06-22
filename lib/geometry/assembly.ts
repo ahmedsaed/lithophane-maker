@@ -5,6 +5,7 @@ import { buildLithophanePanel } from './lithophanePanel';
 import { centerCropHeightMap, downsampleHeightMap } from '../image/toHeightmap';
 import { buildFrame } from './frame';
 import { buildLidFrame } from './lidFrame';
+import { buildPlugInPlace } from './plug';
 
 function reliefSign(params: Params): 1 | -1 {
   return params.relief === 'outward' ? 1 : -1;
@@ -90,6 +91,41 @@ function buildTopPlate(
   return geom;
 }
 
+/** Build the lithophane plate for the bottom panel (flat in local XY, ready to print). */
+function buildBottomPlate(
+  hm: HeightMap,
+  params: Params,
+  L: CubeLayout,
+  resolution: number,
+): BufferGeometry {
+  const { bottomPanelW, bottomPanelD } = L;
+  const cropped = centerCropHeightMap(hm, bottomPanelW, bottomPanelD);
+  const { cellsX, cellsY } = mmPerPixelCells(bottomPanelW, bottomPanelD, params.mmPerPixel, resolution);
+  const downsampled = downsampleHeightMap(cropped, cellsX, cellsY);
+  // The bottom panel mirrors the top: its relief points the opposite way in Z
+  // (outward = −Z, downward, away from the cube) so the sign is flipped.
+  const rs = (reliefSign(params) * -1) as 1 | -1;
+  const geom = buildLithophanePanel({
+    width: bottomPanelW,
+    height: bottomPanelD,
+    thickness: L.t,
+    tongueWidth: L.engage,
+    lithoMin: params.lithoMin,
+    lithoMax: params.lithoMax,
+    heightMap: downsampled,
+    cellsX,
+    cellsY,
+    // Bottom panel is viewed from below; the X axis appears flipped relative to
+    // the top panel (which is viewed from above), so mirror X to keep the image
+    // reading the same way round.
+    mirrorX: true,
+    reliefSign: rs,
+    gamma: params.lithoGamma,
+  });
+  geom.translate(0, 0, (-L.t / 2) * rs);
+  return geom;
+}
+
 /** A complete side part (lithophane plate) in local frame. */
 export function buildSidePartLocal(
   hm: HeightMap,
@@ -108,6 +144,16 @@ export function buildTopPanelFlat(
 ): BufferGeometry {
   const L = cubeLayout(params);
   return buildTopPlate(hm, params, L, resolution);
+}
+
+/** Bottom panel in its own flat (print) orientation — already in the XY plane. */
+export function buildBottomPanelFlat(
+  hm: HeightMap,
+  params: Params,
+  resolution: number,
+): BufferGeometry {
+  const L = cubeLayout(params);
+  return buildBottomPlate(hm, params, L, resolution);
 }
 
 /** Build a side panel already transformed into assembled cube coordinates. */
@@ -150,6 +196,23 @@ export function buildTopPanelInPlace(
   return geom;
 }
 
+/**
+ * Bottom panel in assembled position: mirror of the top panel, seated in the
+ * fused base ring below the cube. Centred at Y = 0, at the base groove Z.
+ */
+export function buildBottomPanelInPlace(
+  hm: HeightMap,
+  params: Params,
+  resolution: number,
+): BufferGeometry {
+  const L = cubeLayout(params);
+  const geom = buildBottomPlate(hm, params, L, resolution);
+  geom.translate(0, 0, L.baseCenterZ);
+  geom.computeVertexNormals();
+  geom.computeBoundingBox();
+  return geom;
+}
+
 /** Build a part in its own flat (print) orientation for STL export. */
 export function buildPanelFlat(
   slot: PanelSlot,
@@ -166,16 +229,24 @@ export function buildAllParts(
   params: Params,
   resolution: number,
 ): PartMesh[] {
+  const L = cubeLayout(params);
   const parts: PartMesh[] = [
-    { id: 'frame', geometry: buildFrame(params) },
-    { id: 'lid',   geometry: buildLidFrame(params) },
+    { id: 'frame',    geometry: buildFrame(params) },
+    { id: 'lid',      geometry: buildLidFrame(params) },
+    { id: 'lidPlug',  geometry: buildPlugInPlace(params, L.lidCenterZ) },
+    { id: 'basePlug', geometry: buildPlugInPlace(params, L.baseCenterZ) },
   ];
   (Object.keys(heightMaps) as PanelSlot[]).forEach((slot) => {
     const hm = heightMaps[slot];
     if (!hm) return;
-    const geometry = slot === 'top'
-      ? buildTopPanelInPlace(hm, params, resolution)
-      : buildPanelInPlace(slot, hm, params, resolution);
+    let geometry: BufferGeometry;
+    if (slot === 'top') {
+      geometry = buildTopPanelInPlace(hm, params, resolution);
+    } else if (slot === 'bottom') {
+      geometry = buildBottomPanelInPlace(hm, params, resolution);
+    } else {
+      geometry = buildPanelInPlace(slot, hm, params, resolution);
+    }
     parts.push({ id: slot, geometry });
   });
   return parts;
@@ -183,8 +254,11 @@ export function buildAllParts(
 
 /** Direction to push a part when showing the exploded assembly view. */
 export function explodeVector(id: PartId): Vector3 {
-  if (id === 'frame') return new Vector3(0, 0, 0);
-  if (id === 'lid')   return new Vector3(0, 0, 1);
-  if (id === 'top')   return new Vector3(0, 0, 2); // above the lid
+  if (id === 'frame')    return new Vector3(0, 0, 0);
+  if (id === 'lid')      return new Vector3(0, 0, 1);
+  if (id === 'lidPlug')  return new Vector3(0, -1, 1);  // out the lid front opening
+  if (id === 'basePlug') return new Vector3(0, -1, -1); // out the base front opening
+  if (id === 'top')      return new Vector3(0, 0, 2);   // above the lid
+  if (id === 'bottom')   return new Vector3(0, 0, -2);  // below the base
   return new Vector3(...faceNormal(id as PanelSlot));
 }

@@ -14,7 +14,6 @@ export const DEFAULT_PARAMS: Params = {
   previewResolution: 180,
   exportResolution: 380,
   mmPerPixel: 0.2,
-  bottomThickness: 3,
   chamfer: true,
   cableHoles: [{ diameter: 8, x: 0, y: 0 }],
   grayscaleMode: 'rec601',
@@ -33,5 +32,8 @@ export const PART_COLORS: Record<string, string> = {
   right: '#e7c6a5',
   frame: '#6b7280',
   lid: '#6b7280',
+  lidPlug: '#6b7280',
+  basePlug: '#6b7280',
   top: '#e7c6a5',
+  bottom: '#e7c6a5',
 };

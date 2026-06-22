@@ -9,7 +9,8 @@ import { exportPartsZip } from '@/lib/export/exportZip';
 import { geometryToStlBlob } from '@/lib/export/exportStl';
 import { buildFrame } from '@/lib/geometry/frame';
 import { buildLidFrame } from '@/lib/geometry/lidFrame';
-import { buildPanelFlat, buildTopPanelFlat } from '@/lib/geometry/assembly';
+import { buildPlug } from '@/lib/geometry/plug';
+import { buildPanelFlat, buildTopPanelFlat, buildBottomPanelFlat } from '@/lib/geometry/assembly';
 import type { HeightMap, PanelSlot } from '@/lib/geometry/types';
 
 const SLOT_LABELS: Record<PanelSlot, string> = {
@@ -18,9 +19,10 @@ const SLOT_LABELS: Record<PanelSlot, string> = {
   left: 'Left panel',
   right: 'Right panel',
   top: 'Top panel',
+  bottom: 'Bottom panel',
 };
 
-const SLOT_ORDER: PanelSlot[] = ['front', 'back', 'left', 'right', 'top'];
+const SLOT_ORDER: PanelSlot[] = ['front', 'back', 'left', 'right', 'top', 'bottom'];
 
 export default function ExportPanel() {
   const slots = useStore((s) => s.slots);
@@ -76,6 +78,21 @@ export default function ExportPanel() {
     }
   };
 
+  const onExportPlug = async () => {
+    setBusy(true);
+    setStatus('Building plug…');
+    try {
+      const blob = geometryToStlBlob(buildPlug(params));
+      saveAs(blob, 'plug.stl');
+      setStatus('Downloaded plug.stl (print 2: lid + base)');
+    } catch (err) {
+      console.error(err);
+      setStatus('Export failed — see console.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onExportPanel = async (slot: PanelSlot) => {
     setBusy(true);
     const label = SLOT_LABELS[slot];
@@ -83,10 +100,14 @@ export default function ExportPanel() {
     try {
       const hm = await buildSlotHeightMap(slot);
       if (!hm) return;
-      const geom = slot === 'top'
-        ? buildTopPanelFlat(hm, params, params.exportResolution)
-        : buildPanelFlat(slot, hm, params, params.exportResolution);
-      const filename = slot === 'top' ? 'top.stl' : `side-${slot}.stl`;
+      const geom =
+        slot === 'top'    ? buildTopPanelFlat(hm, params, params.exportResolution) :
+        slot === 'bottom' ? buildBottomPanelFlat(hm, params, params.exportResolution) :
+        buildPanelFlat(slot, hm, params, params.exportResolution);
+      const filename =
+        slot === 'top'    ? 'top.stl' :
+        slot === 'bottom' ? 'bottom.stl' :
+        `side-${slot}.stl`;
       saveAs(geometryToStlBlob(geom), filename);
       setStatus(`Downloaded ${filename}`);
     } catch (err) {
@@ -136,6 +157,12 @@ export default function ExportPanel() {
             Download
           </button>
         </div>
+        <div className="export-row">
+          <span className="export-label">Plug (×2)</span>
+          <button className="btn btn-sm" onClick={onExportPlug} disabled={busy}>
+            Download
+          </button>
+        </div>
         {SLOT_ORDER.map((slot) =>
           slots[slot] ? (
             <div key={slot} className="export-row">
@@ -153,7 +180,7 @@ export default function ExportPanel() {
       </button>
 
       <div className="status">
-        {status || `${count} of 4 images added — frame always included.`}
+        {status || `${count} of 6 images added — frame always included.`}
       </div>
     </div>
   );

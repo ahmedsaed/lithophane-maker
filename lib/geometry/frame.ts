@@ -2,42 +2,39 @@ import type { BufferGeometry } from 'three';
 import type { Params } from './types';
 import { cubeLayout } from './layout';
 import {
-  mBox, mCylinderZ, mExtrudePrism,
+  mBox, mExtrudePrism,
   mUnionAll, mSubtract, mUnion,
   manifoldToGeometry,
 } from './mCsg';
+import { buildBase } from './base';
 import type { Mat4 } from 'manifold-3d';
 
 const eps = 0.02;
 
 export function buildFrame(params: Params): BufferGeometry {
   const L = cubeLayout(params);
-  const { C, half, t, clear, engage, cornerReach, grooveCenter, bottomThickness } = L;
+  const { C, half, t, clear, engage, cornerReach, grooveCenter, tabHeight } = L;
 
   // ── STEP 1: corner posts ────────────────────────────────────────────────────
-  // Posts run from floor top (−half+bottomThickness) to cube top (+half),
-  // matching the panel height exactly.
-  const postH = C - bottomThickness;
-  const postCenterZ = bottomThickness / 2;
+  // Posts span the full cube height (−half → +half): the lid caps the top and
+  // the fused base ring caps the bottom, so there is no floor to start above.
+  const postH = C;
   const posts = L.corners.map(([sx, sy]) =>
     mBox(cornerReach, cornerReach, postH,
          sx * (half - cornerReach / 2),
          sy * (half - cornerReach / 2),
-         postCenterZ),
+         0),
   );
 
-  // ── STEP 2: floor ───────────────────────────────────────────────────────────
-  const floor = mBox(C, C, L.bottomThickness, 0, 0, -half + L.bottomThickness / 2);
+  let frame = mUnionAll(posts);
 
-  let frame = mUnionAll([...posts, floor]);
-
-  // ── STEP 3: groove cutters ─────────────────────────────────────────────────
+  // ── STEP 2: groove cutters ─────────────────────────────────────────────────
   const slotW      = t + 2 * clear;
   const slotD      = engage + clear;
-  // Extend eps past both the floor top and the post top so no cutter face is
-  // coplanar with a frame face — this is critical for manifold output.
-  const grooveH    = C - L.bottomThickness + 2 * eps;
-  const grooveZ    = L.bottomThickness / 2;
+  // Run the full post height plus eps past both ends so no cutter face is
+  // coplanar with a post face — this is critical for manifold output.
+  const grooveH    = C + 2 * eps;
+  const grooveZ    = 0;
   const guideDepth = 2;
   const grooveD    = slotD + guideDepth;
 
@@ -66,13 +63,13 @@ export function buildFrame(params: Params): BufferGeometry {
 
   // Snap grooves — 0.5 mm recesses in the inner corner pocket walls that receive
   // the lid tab ridges for a click-lock fit when the lid is pressed down.
-  // Position matches ridgeZ in lidFrame.ts: half − bottomThickness + ridgeSize.
+  // Position matches ridgeZ in lidFrame.ts: half − tabHeight + ridgeSize.
   const ridgeSize       = 0.5;
   const ridgeProtrusion = ridgeSize * 0.2;                     // matches lidFrame.ts
   const ridgeH          = ridgeProtrusion * 2 / Math.sqrt(3);  // equilateral height
   const ridgeW          = slotD * 0.5;
   const outerEdgeSnap   = gi + grooveD / 2;
-  const snapZ           = half - bottomThickness + ridgeSize;  // centre Z, matches ridgeZ in lidFrame.ts
+  const snapZ           = half - tabHeight + ridgeSize;  // centre Z, matches ridgeZ in lidFrame.ts
 
   for (const [sx, sy] of L.corners) {
     // Groove bounding box of the equilateral ridge + eps clearance
@@ -82,7 +79,7 @@ export function buildFrame(params: Params): BufferGeometry {
       sx * grooveCenter, sy * (outerEdgeSnap + (ridgeProtrusion + eps) / 2), snapZ));
   }
 
-  // Outer arm-tip chamfers — right triangle engage×gap, same shape as base wedges
+  // Outer arm-tip chamfers — right triangle engage×gap, extruded the full height.
   const gap = half - L.panelOffset - slotW / 2;
   if (params.chamfer && gap > 0) {
     const innerFace = half - cornerReach;
@@ -104,40 +101,12 @@ export function buildFrame(params: Params): BufferGeometry {
     }
   }
 
-  // Cable / USB holes
-  for (const hole of params.cableHoles) {
-    const r = Math.max(0.5, hole.diameter / 2);
-    tools.push(mCylinderZ(r, L.bottomThickness + 2 * eps, hole.x, hole.y, -half + L.bottomThickness / 2));
-  }
-
   frame = mSubtract(frame, mUnionAll(tools));
 
-  // ── STEP 4: base-chamfer wedges ────────────────────────────────────────────
-  const floorTop     = -half + L.bottomThickness;
-  const wedgeOriginZ = floorTop - eps;
-  // gap already declared above in Step 3
-
-  if (params.chamfer && gap > 0) {
-    const tri: Array<[number, number]> = [[0, 0], [gap, 0], [gap, engage + eps]];
-    const W = wedgeOriginZ;
-
-    // Column-major Mat4 arrays derived from the verified row-major Three.js matrices:
-    //   +Y face: set( 0, 0,-1,   0,   -1, 0, 0, half,   0, 1, 0, W,  0,0,0,1)
-    //   -Y face: set( 0, 0, 1,   0,    1, 0, 0,-half,   0, 1, 0, W,  0,0,0,1)
-    //   +X face: set(-1, 0, 0, half,   0, 0, 1,    0,   0, 1, 0, W,  0,0,0,1)
-    //   -X face: set( 1, 0, 0,-half,   0, 0,-1,    0,   0, 1, 0, W,  0,0,0,1)
-    // Each has det=+1 (proper rotation), so manifold will orient normals outward.
-    const wedgeMats: Mat4[] = [
-      //  col0       col1      col2        col3
-      [ 0,-1,0,0,  0,0,1,0,  -1, 0,0,0,  0,  half, W, 1 ],  // +Y
-      [ 0, 1,0,0,  0,0,1,0,   1, 0,0,0,  0, -half, W, 1 ],  // -Y
-      [-1, 0,0,0,  0,0,1,0,   0, 1,0,0,  half,  0, W, 1 ],  // +X
-      [ 1, 0,0,0,  0,0,1,0,   0,-1,0,0, -half,  0, W, 1 ],  // -X
-    ];
-
-    const wedges = wedgeMats.map((mat) => mExtrudePrism(tri, C, mat));
-    frame = mUnion(frame, mUnionAll(wedges));
-  }
+  // ── STEP 3: fused base ring ────────────────────────────────────────────────
+  // A mirror of the lid, permanently fused below the posts. Closes the bottom
+  // and accepts a slide-in bottom lithophane panel.
+  frame = mUnion(frame, buildBase(L));
 
   return manifoldToGeometry(frame);
 }

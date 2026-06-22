@@ -29,10 +29,16 @@ describe('CSG / merged parts build without throwing', () => {
     expect(vertexCount(buildPanelFlat('front', hm, DEFAULT_PARAMS, 60))).toBeGreaterThan(0);
   });
 
-  it('buildAllParts returns frame plus provided panels', () => {
+  it('buildAllParts returns frame + lid + plugs plus provided panels', () => {
     const parts = buildAllParts({ front: hm, back: hm }, DEFAULT_PARAMS, 60);
     const ids = parts.map((p) => p.id).sort();
-    expect(ids).toEqual(['back', 'frame', 'front']);
+    expect(ids).toEqual(['back', 'basePlug', 'frame', 'front', 'lid', 'lidPlug']);
+  });
+
+  it('bottom panel builds in place', () => {
+    const parts = buildAllParts({ bottom: hm }, DEFAULT_PARAMS, 60);
+    const bottom = parts.find((p) => p.id === 'bottom');
+    expect(bottom && vertexCount(bottom.geometry)).toBeGreaterThan(0);
   });
 
   it('exports a non-empty STL blob', () => {

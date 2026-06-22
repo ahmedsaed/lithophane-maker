@@ -1,6 +1,6 @@
 import type { BufferGeometry } from 'three';
 import type { Params } from './types';
-import { cubeLayout } from './layout';
+import { cubeLayout, type CubeLayout } from './layout';
 import type { Mat4 } from 'manifold-3d';
 import {
   mBox,
@@ -8,24 +8,19 @@ import {
   mUnionAll,
   mSubtract,
   manifoldToGeometry,
+  type Manifold,
 } from './mCsg';
 
 /**
- * Lid frame — a flat square ring that caps the open top of the cube.
+ * Shared square ring with three closed sides (back +Y, right +X, left −X) and
+ * an open front (−Y). Each closed side carries a horizontal groove on its inner
+ * face that receives a slide-in lithophane panel.
  *
- * The top panel slides in horizontally from the front (−Y direction).
- * The front rail is omitted. The three closed sides (back +Y, right +X, left −X)
- * have a groove cut into their inner face: a channel with a top wall, a gap
- * (= t + 2*clear) for the panel edge to slide in, and a bottom wall.
- *
- * Lid thickness is derived so there is always a minWall of material above and
- * below the groove — it will be thicker than bottomThickness when the panel is thick.
- *
- * Print orientation: face-down on the build plate. No overhangs.
+ * Used by both the lid (above the cube) and the fused base (below the cube):
+ * they are identical apart from their centre Z and the lid's snap tabs.
  */
-export function buildLidFrame(params: Params): BufferGeometry {
-  const L = cubeLayout(params);
-  const { C, half, t, clear, engage, cornerReach, corners, lidThickness, lidCenterZ, topPanelW } = L;
+export function buildPanelRing(L: CubeLayout, centerZ: number, thickness: number): Manifold {
+  const { C, half, t, clear, engage, cornerReach, corners, topPanelW } = L;
 
   const eps   = 0.02;
   const slotW = t + 2 * clear;   // groove gap height in Z
@@ -36,10 +31,10 @@ export function buildLidFrame(params: Params): BufferGeometry {
     mBox(
       cornerReach,
       cornerReach,
-      lidThickness,
+      thickness,
       sx * (half - cornerReach / 2),
       sy * (half - cornerReach / 2),
-      lidCenterZ,
+      centerZ,
     ),
   );
 
@@ -47,9 +42,9 @@ export function buildLidFrame(params: Params): BufferGeometry {
   const railSpan = C - 2 * cornerReach;
 
   const sideRails = [
-    mBox(railSpan, cornerReach, lidThickness,  0,                        half - cornerReach / 2, lidCenterZ), // back  +Y
-    mBox(cornerReach, railSpan, lidThickness,  half - cornerReach / 2,  0,                       lidCenterZ), // right +X
-    mBox(cornerReach, railSpan, lidThickness, -half + cornerReach / 2,  0,                       lidCenterZ), // left  −X
+    mBox(railSpan, cornerReach, thickness,  0,                        half - cornerReach / 2, centerZ), // back  +Y
+    mBox(cornerReach, railSpan, thickness,  half - cornerReach / 2,  0,                       centerZ), // right +X
+    mBox(cornerReach, railSpan, thickness, -half + cornerReach / 2,  0,                       centerZ), // left  −X
   ];
 
   let ring = mUnionAll([...cornerBlocks, ...sideRails]);
@@ -59,35 +54,79 @@ export function buildLidFrame(params: Params): BufferGeometry {
   // Cross-section (viewed from inner face):
   //   height in Z = slotW  (t + 2*clear) — the gap the panel edge slides into
   //   depth       = slotD  (engage + clear) — how far into the rail it reaches
-  // The groove is centred vertically on the lid (at lidCenterZ), leaving
-  // minWall of material on both the top and bottom faces.
-  //
-  // Inner-face distance from cube centre (the groove mouth sits here).
+  // The groove is centred vertically on the ring (at centerZ), leaving
+  // minWall of material on both faces.
   const innerEdge = half - cornerReach;
 
   // Left/right grooves run from the open front face (Y = −half) past the back
   // inner face (Y = +innerEdge) all the way to the back tongue stop
-  // (Y = innerEdge + engage).  This lets the panel's left/right edges ride
+  // (Y = innerEdge + engage). This lets the panel's left/right edges ride
   // through the back-corner-block area so the panel centres at Y = 0.
-  // Span: half + innerEdge + engage, centred at (innerEdge + engage − half) / 2.
   const grooveSpanY   = half + innerEdge + engage + 2 * eps;
   const grooveCentreY = (innerEdge + engage - half) / 2;
 
   // Extend by 2*eps in the radial direction so the cutter breaks through the
-  // inner-face plane (at X = ±innerEdge) instead of being coplanar with it.
-  // Without this, the inner face is never removed and the groove appears sealed.
+  // inner-face plane instead of being coplanar with it.
   const grooveCutters = [
     // right (+X) inner face: groove runs along Y through back-right corner block
-    mBox(slotD + 2 * eps, grooveSpanY, slotW,  innerEdge + slotD / 2, grooveCentreY, lidCenterZ),
+    mBox(slotD + 2 * eps, grooveSpanY, slotW,  innerEdge + slotD / 2, grooveCentreY, centerZ),
     // left  (−X) inner face: groove runs along Y through back-left corner block
-    mBox(slotD + 2 * eps, grooveSpanY, slotW, -innerEdge - slotD / 2, grooveCentreY, lidCenterZ),
+    mBox(slotD + 2 * eps, grooveSpanY, slotW, -innerEdge - slotD / 2, grooveCentreY, centerZ),
     // back  (+Y) inner face: groove runs along X, accepts the panel's back tongue.
-    // Extend by 2*eps in Y to break through the back inner face (coplanar guard).
-    // Width spans the full topPanelW so the cutter also covers the corner-block areas.
-    mBox(topPanelW + 2 * eps, slotD + 2 * eps, slotW, 0, innerEdge + slotD / 2, lidCenterZ),
+    mBox(topPanelW + 2 * eps, slotD + 2 * eps, slotW, 0, innerEdge + slotD / 2, centerZ),
   ];
 
-  ring = mSubtract(ring, mUnionAll(grooveCutters));
+  // ── Snap pockets ───────────────────────────────────────────────────────────
+  // Small rectangular pockets cut into the top and bottom walls of the left and
+  // right panel grooves, just inside the front opening. The plug tongue ridges
+  // click into these when the plug is pushed home (see plug.ts).
+  //
+  //   snapOffset — distance from the ring front face to the pocket centre in Y
+  //   snapW      — pocket width in Y
+  //   snapDepth  — how far the pocket cuts into the groove wall (in Z)
+  // Dimensions match the triangular ridge in plug.ts:
+  //   ridgeProtrusion = 0.12 mm  →  ridgeH = 2×0.12/√3 ≈ 0.139 mm
+  //   snapDepth = ridgeProtrusion (pocket exactly as deep as ridge tip)
+  //   snapW     = ridgeH + 2×clear  (ridge base + clearance either side in Y)
+  const snapOffset = 2.0;
+  const snapRidgeP = 0.12;                            // plug ridge protrusion (from plug.ts)
+  const snapRidgeH = snapRidgeP * 2 / Math.sqrt(3);   // equilateral base height
+  const snapW      = snapRidgeH + 2 * clear;
+  const snapDepth  = snapRidgeP;
+  const snapCentY  = -(half - snapOffset);
+  const snapTopZ   = centerZ + slotW / 2 + snapDepth / 2;
+  const snapBotZ   = centerZ - slotW / 2 - snapDepth / 2;
+
+  const snapPockets = [
+    mBox(slotD, snapW, snapDepth,  innerEdge + slotD / 2, snapCentY, snapTopZ),  // right, top
+    mBox(slotD, snapW, snapDepth,  innerEdge + slotD / 2, snapCentY, snapBotZ),  // right, bottom
+    mBox(slotD, snapW, snapDepth, -innerEdge - slotD / 2, snapCentY, snapTopZ),  // left,  top
+    mBox(slotD, snapW, snapDepth, -innerEdge - slotD / 2, snapCentY, snapBotZ),  // left,  bottom
+  ];
+
+  return mSubtract(ring, mUnionAll([...grooveCutters, ...snapPockets]));
+}
+
+/**
+ * Lid frame — a flat square ring that caps the open top of the cube.
+ *
+ * The top panel slides in horizontally from the front (−Y direction).
+ * The front rail is omitted. The three closed sides (back +Y, right +X, left −X)
+ * have a groove cut into their inner face: a channel with a top wall, a gap
+ * (= t + 2*clear) for the panel edge to slide in, and a bottom wall.
+ *
+ * Lid thickness is derived so there is always a minWall of material above and
+ * below the groove.
+ *
+ * Print orientation: face-down on the build plate. No overhangs.
+ */
+export function buildLidFrame(params: Params): BufferGeometry {
+  const L = cubeLayout(params);
+  const { half, clear, engage, corners, lidThickness, lidCenterZ } = L;
+
+  const slotD = engage + clear;  // groove depth into the rail (radially)
+
+  let ring = buildPanelRing(L, lidCenterZ, lidThickness);
 
   // ── Alignment tabs ─────────────────────────────────────────────────────────
   // Four square pegs protruding downward from the lid underside (Z = half → half−tabH).
@@ -102,7 +141,7 @@ export function buildLidFrame(params: Params): BufferGeometry {
   // edge (gi + grooveD/2). That span equals slotD, centred at grooveCenter.
   const tabSize     = slotD;
   const tabCentDist = L.grooveCenter;
-  const tabH        = params.bottomThickness;
+  const tabH        = L.tabHeight;
   // Outer face of each tab = the pocket wall it presses against.
   const outerEdge   = L.grooveCenter + slotD / 2;
 

@@ -138,15 +138,6 @@ export default function ParamsPanel() {
           value={params.chamfer}
           onChange={(v) => set({ chamfer: v as boolean })}
         />
-        <Slider
-          label="Bottom thickness"
-          unit=" mm"
-          value={params.bottomThickness}
-          min={1.5}
-          max={6}
-          step={0.5}
-          onChange={(v) => set({ bottomThickness: v })}
-        />
       </Group>
 
       <Group title="Panel">
