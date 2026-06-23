@@ -21,7 +21,7 @@ import { mBox, mUnionAll, mExtrudePrism, manifoldToGeometry } from './mCsg';
  */
 export function buildPlug(params: Params): BufferGeometry {
   const L = cubeLayout(params);
-  const { C, half, t, clear, engage, cornerReach, lidThickness } = L;
+  const { C, half, t, clear, engage, cornerReach, lidThickness, panelOffset } = L;
   const slotW     = t + 2 * clear;
   const innerEdge = half - cornerReach;
   const railW     = C - 2 * cornerReach;
@@ -90,7 +90,22 @@ export function buildPlug(params: Params): BufferGeometry {
   const lBot = mExtrudePrism(tri, ridgeW,
     [0, 0, -1, 0,  0, 1, 0, 0,  -1, 0, 0, 0,  -tongueCX, ridgeStartY, -tongueH / 2, 1] as unknown as Mat4);
 
-  return manifoldToGeometry(mUnionAll([body, rightTongue, leftTongue, rTop, rBot, lTop, lBot]));
+  // ── Tongue-hiding lip ───────────────────────────────────────────────────────
+  // A thin shelf reaching `engage` toward the cube centre, sitting in the recess
+  // just outboard of the front side panel — hiding that panel's top/bottom tongue
+  // the same way the rail lips (buildPanelRing) hide the other three. It sits in
+  // FRONT of the panel (toward the exterior), so it never blocks the plug as it
+  // slides in. Canonical orientation extends down (lid); the base flip carries it
+  // up onto the base front panel.
+  const panelOuterLocalY = half - panelOffset - t / 2 - cornerReach / 2; // front panel outer face, plug-local Y
+  const shelfBack  = panelOuterLocalY - clear;   // just outboard of the panel face
+  const shelfFront = -cornerReach / 2;           // plug front (exterior) edge
+  const shelfDepth = shelfBack - shelfFront;     // recess depth outboard of the panel
+  const lip = shelfDepth > 0
+    ? [mBox(bodyW, shelfDepth, engage, 0, (shelfFront + shelfBack) / 2, -lidThickness / 2 - engage / 2)]
+    : [];
+
+  return manifoldToGeometry(mUnionAll([body, rightTongue, leftTongue, rTop, rBot, lTop, lBot, ...lip]));
 }
 
 /**

@@ -49,8 +49,6 @@ export interface Params {
   previewResolution: number;
   /** Longest-side sample count for exported meshes. */
   exportResolution: number;
-  /** Enable chamfers on outer arm-tip edges. */
-  chamfer: boolean;
   /** Physical resolution: how many mm each source image pixel maps to on the panel. */
   mmPerPixel: number;
   /** Cable/USB holes in the solid bottom. */

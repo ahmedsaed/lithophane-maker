@@ -129,15 +129,6 @@ export default function ParamsPanel() {
             set({ postSize: v, panelThickness: Math.min(params.panelThickness, newMax) });
           }}
         />
-        <Toggle
-          label="Wedge chamfer"
-          options={[
-            { label: 'On', value: true },
-            { label: 'Off', value: false },
-          ]}
-          value={params.chamfer}
-          onChange={(v) => set({ chamfer: v as boolean })}
-        />
       </Group>
 
       <Group title="Panel">

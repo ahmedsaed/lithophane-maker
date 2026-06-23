@@ -32,7 +32,7 @@ export function buildPanelRing(
   thickness: number,
   bridgeSide: 1 | -1,
 ): Manifold {
-  const { C, half, t, clear, engage, cornerReach, corners, topPanelW } = L;
+  const { C, half, t, clear, engage, cornerReach, corners, topPanelW, panelOffset } = L;
 
   const eps     = 0.02;
   const slotW   = t + 2 * clear;            // groove gap height in Z
@@ -71,7 +71,25 @@ export function buildPanelRing(
     centerZ + bridgeSide * (slotW / 2 + minWall / 2),
   );
 
-  let ring = mUnionAll([...cornerBlocks, ...sideRails, frontBridge]);
+  // ── Tongue-hiding lips ──────────────────────────────────────────────────────
+  // Each closed rail grows a thin shelf reaching `engage` toward the cube centre,
+  // sitting in the recess just outboard of its side panel. This hides the side
+  // panels' top/bottom tongues behind a face flush with the cube exterior —
+  // exactly how the corner posts hide their left/right tongues. The lid presses
+  // straight down so the shelf clears the panel (it sits in the outboard recess).
+  // The front (−Y) panel's tongue is hidden by the plug instead (see plug.ts).
+  const cubeFaceZ   = centerZ - bridgeSide * thickness / 2; // ring edge nearest the cube
+  const lipCenterZ  = cubeFaceZ - bridgeSide * engage / 2;  // shelf centred over the tongue
+  const recessThk   = half - (panelOffset + t / 2 + clear); // gap outboard of the panel face
+  const shelfCentre = (panelOffset + t / 2 + clear + half) / 2;
+
+  const tongueLips = recessThk > 0 ? [
+    mBox(railSpan, recessThk, engage, 0,            shelfCentre, lipCenterZ),  // back  +Y
+    mBox(recessThk, railSpan, engage, shelfCentre,  0,           lipCenterZ),  // right +X
+    mBox(recessThk, railSpan, engage, -shelfCentre, 0,           lipCenterZ),  // left  −X
+  ] : [];
+
+  let ring = mUnionAll([...cornerBlocks, ...sideRails, frontBridge, ...tongueLips]);
 
   // ── Groove cutters ─────────────────────────────────────────────────────────
   // Each groove is a horizontal channel on the inner face of its rail.

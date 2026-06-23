@@ -2,12 +2,11 @@ import type { BufferGeometry } from 'three';
 import type { Params } from './types';
 import { cubeLayout } from './layout';
 import {
-  mBox, mExtrudePrism,
+  mBox,
   mUnionAll, mSubtract, mUnion,
   manifoldToGeometry,
 } from './mCsg';
 import { buildBase } from './base';
-import type { Mat4 } from 'manifold-3d';
 
 const eps = 0.02;
 
@@ -77,28 +76,6 @@ export function buildFrame(params: Params): BufferGeometry {
       sx * (outerEdgeSnap + (ridgeProtrusion + eps) / 2), sy * grooveCenter, snapZ));
     tools.push(mBox(ridgeW + 2 * eps, ridgeProtrusion + eps, ridgeH + 2 * eps,
       sx * grooveCenter, sy * (outerEdgeSnap + (ridgeProtrusion + eps) / 2), snapZ));
-  }
-
-  // Outer arm-tip chamfers — right triangle engage×gap, extruded the full height.
-  const gap = half - L.panelOffset - slotW / 2;
-  if (params.chamfer && gap > 0) {
-    const innerFace = half - cornerReach;
-    // Triangle origin is offset by -eps so no vertex lies exactly on a post face —
-    // coplanar cutter/frame faces cause manifold artifacts (same reason grooveH uses +2*eps).
-    const triArm: Array<[number, number]> = [[-eps, -eps], [engage + eps, -eps], [-eps, gap + eps]];
-    for (const [sx, sy] of L.corners) {
-      const sxy = sx * sy;
-      // X arm tip at (sx·half, sy·innerFace)
-      // local X→(−sx,0), local Y→(0,sy), Z_z = −sxy to give det = +1
-      const ZzX = -sxy;
-      tools.push(mExtrudePrism(triArm, grooveH,
-        [-sx,0,0,0, 0,sy,0,0, 0,0,ZzX,0, sx*half, sy*innerFace, grooveZ, 1] as unknown as Mat4));
-      // Y arm tip at (sx·innerFace, sy·half)
-      // local X→(0,−sy), local Y→(sx,0), Z_z = sxy to give det = +1
-      const ZzY = sxy;
-      tools.push(mExtrudePrism(triArm, grooveH,
-        [0,-sy,0,0, sx,0,0,0, 0,0,ZzY,0, sx*innerFace, sy*half, grooveZ, 1] as unknown as Mat4));
-    }
   }
 
   frame = mSubtract(frame, mUnionAll(tools));
