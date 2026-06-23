@@ -49,6 +49,8 @@ export interface Params {
   previewResolution: number;
   /** Longest-side sample count for exported meshes. */
   exportResolution: number;
+  /** Bevel the exterior frame edge around each lithophane panel (slopes into the panel). */
+  chamfer: boolean;
   /** Physical resolution: how many mm each source image pixel maps to on the panel. */
   mmPerPixel: number;
   /** Cable/USB holes in the solid bottom. */

@@ -14,6 +14,7 @@ export const DEFAULT_PARAMS: Params = {
   previewResolution: 180,
   exportResolution: 380,
   mmPerPixel: 0.2,
+  chamfer: true,
   cableHoles: [{ diameter: 8, x: 0, y: 0 }],
   grayscaleMode: 'rec601',
   lithoBrightness: 0,

@@ -1,6 +1,7 @@
 import type { BufferGeometry } from 'three';
 import type { Params } from './types';
 import { cubeLayout, type CubeLayout } from './layout';
+import { chamferCutters } from './chamfer';
 import type { Mat4 } from 'manifold-3d';
 import {
   mBox,
@@ -235,6 +236,13 @@ export function buildLidFrame(params: Params): BufferGeometry {
       ];
     });
     ring = ring.add(mUnionAll(tabsAndRidges));
+  }
+
+  // Bevel the exterior frame edge around each panel. The lid owns the side panels'
+  // top borders (its lips) and the top panel's borders, so it subtracts the four
+  // side cutters + the top.
+  if (params.chamfer) {
+    ring = mSubtract(ring, mUnionAll(chamferCutters(L, 1)));
   }
 
   return manifoldToGeometry(ring);

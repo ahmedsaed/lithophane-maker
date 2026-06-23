@@ -1,6 +1,7 @@
 import type { BufferGeometry } from 'three';
 import type { Params } from './types';
 import { cubeLayout } from './layout';
+import { faceChamferCutter } from './chamfer';
 import type { Mat4 } from 'manifold-3d';
 import { mBox, mUnionAll, mExtrudePrism, manifoldToGeometry } from './mCsg';
 
@@ -105,7 +106,18 @@ export function buildPlug(params: Params): BufferGeometry {
     ? [mBox(bodyW, shelfDepth, engage, 0, (shelfFront + shelfBack) / 2, -lidThickness / 2 - engage / 2)]
     : [];
 
-  return manifoldToGeometry(mUnionAll([body, rightTongue, leftTongue, rTop, rBot, lTop, lBot, ...lip]));
+  let plug = mUnionAll([body, rightTongue, leftTongue, rTop, rBot, lTop, lBot, ...lip]);
+
+  // Bevel the lip's exterior edge to match the chamfer on the other panel borders.
+  // The plug's lip forms the front panel's top/bottom border, so it takes the same
+  // −Y face cutter the posts get, brought into the plug's local (canonical/lid) frame.
+  // The base flip in buildPlugInPlace carries it onto the base front panel.
+  if (params.chamfer) {
+    const cutter = faceChamferCutter(L, 1, -1).translate(0, half - cornerReach / 2, -L.lidCenterZ);
+    plug = plug.subtract(cutter);
+  }
+
+  return manifoldToGeometry(plug);
 }
 
 /**

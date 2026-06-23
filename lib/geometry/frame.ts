@@ -7,6 +7,7 @@ import {
   manifoldToGeometry,
 } from './mCsg';
 import { buildBase } from './base';
+import { chamferCutters } from './chamfer';
 
 const eps = 0.02;
 
@@ -84,6 +85,14 @@ export function buildFrame(params: Params): BufferGeometry {
   // A mirror of the lid, permanently fused below the posts. Closes the bottom
   // and accepts a slide-in bottom lithophane panel.
   frame = mUnion(frame, buildBase(L));
+
+  // ── STEP 4: edge chamfers ──────────────────────────────────────────────────
+  // Bevel the exterior frame edge around each panel so it slopes into the panel.
+  // Frame owns the side panels' left/right (posts) + bottom (base lip) borders and
+  // the bottom panel's borders, so it subtracts the four side cutters + the bottom.
+  if (params.chamfer) {
+    frame = mSubtract(frame, mUnionAll(chamferCutters(L, -1)));
+  }
 
   return manifoldToGeometry(frame);
 }
