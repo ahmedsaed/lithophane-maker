@@ -6,7 +6,7 @@ export type PanelSlot = 'front' | 'back' | 'left' | 'right' | 'top';
 export const PANEL_SLOTS: PanelSlot[] = ['front', 'back', 'left', 'right', 'top'];
 
 /** The seven printable parts of the assembled cube. */
-export type PartId = PanelSlot | 'frame' | 'lid' | 'plug';
+export type PartId = PanelSlot | 'frame' | 'lid';
 
 /** A grayscale height field sampled on a regular grid. */
 export interface HeightMap {
@@ -18,6 +18,9 @@ export interface HeightMap {
 
 /** Direction the lithophane relief points relative to the panel plane. */
 export type ReliefDirection = 'inward' | 'outward';
+
+/** How the lid holds onto the corner posts. */
+export type LidAttach = 'pressfit' | 'magnet';
 
 /** Grayscale conversion mode for image-to-heightmap conversion. */
 export type GrayscaleMode = 'rec601' | 'rec709' | 'average' | 'luminosity';
@@ -48,8 +51,16 @@ export interface Params {
   exportResolution: number;
   /** Thickness of the solid frame bottom. */
   bottomThickness: number;
-  /** Enable chamfers on outer arm-tip edges and base ramp wedges. */
-  chamfer: boolean;
+  /** Lid attachment: printed pegs pressed into the posts, or glued-in magnets. */
+  lidAttach: LidAttach;
+  /** Press-fit peg length below the lid (mm). Longer pegs grip harder. */
+  pegDepth: number;
+  /** Per-side gap between a peg and its hole (mm). 0 = interference-free exact fit. */
+  pegClearance: number;
+  /** Disc magnet diameter (mm). */
+  magnetDiameter: number;
+  /** Disc magnet height (mm). */
+  magnetHeight: number;
   /** Physical resolution: how many mm each source image pixel maps to on the panel. */
   mmPerPixel: number;
   /** Cable/USB holes in the solid bottom. */

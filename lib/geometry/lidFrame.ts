@@ -1,187 +1,98 @@
 import type { BufferGeometry } from 'three';
 import type { Params } from './types';
 import { cubeLayout } from './layout';
-import type { Mat4 } from 'manifold-3d';
+import { faceRails, panelSlotCutters } from './frame';
 import {
   mBox,
-  mExtrudePrism,
-  mUnionAll,
+  mCylinderZ,
+  mFrustumZ,
   mSubtract,
+  mUnion,
+  mUnionAll,
   manifoldToGeometry,
+  withManifoldScope,
 } from './mCsg';
 
+const eps = 0.02;
+/** Height of the tapered lead-in at each peg tip, and how much narrower the tip is (mm). */
+const PEG_LEAD_IN = 0.6;
+const PEG_TIP_INSET = 0.4;
+
 /**
- * Lid frame — a flat square ring that caps the open top of the cube.
+ * Lid — the top band of the cube, `cornerReach` tall so every side face shows
+ * a frame of equal width on all four edges, and the top face a matching ring.
  *
- * The top panel slides in horizontally from the front (−Y direction).
- * The front rail is omitted. The three closed sides (back +Y, right +X, left −X)
- * have a groove cut into their inner face: a channel with a top wall, a gap
- * (= t + 2*clear) for the panel edge to slide in, and a bottom wall.
+ * It has corner blocks continuing the posts (grooves included), a skirt along
+ * each face that hangs over the side panels' top edges from outside, and a top
+ * plate whose underside has a cross-shaped recess for the top panel, which
+ * rests on the side-panel tops and is trapped there.
+ * The corner blocks sit on the post tops and attach either with press-fit pegs
+ * that drop into holes in the posts, or with disc magnets glued into both.
  *
- * Lid thickness is derived so there is always a minWall of material above and
- * below the groove — it will be thicker than bottomThickness when the panel is thick.
- *
- * Print orientation: face-down on the build plate. No overhangs.
+ * Built in assembled position (top face at Z = +half). Use buildLidForPrint for
+ * export: it is printed face-down, so the grooves, recess and pegs face up.
  */
 export function buildLidFrame(params: Params): BufferGeometry {
+  return withManifoldScope(() => buildLidFrameScoped(params));
+}
+
+function buildLidFrameScoped(params: Params): BufferGeometry {
   const L = cubeLayout(params);
-  const { C, half, t, clear, engage, cornerReach, corners, lidThickness, lidCenterZ, topPanelW } = L;
+  const { C, half, clear, cornerReach, corners, lidRing, lidRecess, postTop, panelTop, panelOuter } = L;
+  const inner = half - cornerReach; // post inner face = edge of the lid opening
 
-  const eps   = 0.02;
-  const slotW = t + 2 * clear;   // groove gap height in Z
-  const slotD = engage + clear;  // groove depth into the rail (radially)
-
-  // ── Corner blocks ──────────────────────────────────────────────────────────
   const cornerBlocks = corners.map(([sx, sy]) =>
-    mBox(
-      cornerReach,
-      cornerReach,
-      lidThickness,
-      sx * (half - cornerReach / 2),
-      sy * (half - cornerReach / 2),
-      lidCenterZ,
-    ),
-  );
+    mBox(cornerReach, cornerReach, half - postTop,
+      sx * (half - cornerReach / 2), sy * (half - cornerReach / 2), (postTop + half) / 2));
+  // The plate reaches eps down into the rails so the union fuses one body.
+  const plate = mBox(C, C, lidRing + eps, 0, 0, panelTop + (lidRing - eps) / 2);
+  // Skirts hang over the side-panel top edges from outside; no inner wall,
+  // because the top panel reaches out over those edges.
+  const skirtInner = panelOuter + clear;
+  const body = mUnionAll([...cornerBlocks, plate, ...faceRails(L, postTop, panelTop, skirtInner)]);
 
-  // ── Side rails (three closed sides; front −Y is open for panel insertion) ──
-  const railSpan = C - 2 * cornerReach;
-
-  const sideRails = [
-    mBox(railSpan, cornerReach, lidThickness,  0,                        half - cornerReach / 2, lidCenterZ), // back  +Y
-    mBox(cornerReach, railSpan, lidThickness,  half - cornerReach / 2,  0,                       lidCenterZ), // right +X
-    mBox(cornerReach, railSpan, lidThickness, -half + cornerReach / 2,  0,                       lidCenterZ), // left  −X
+  const opening = mBox(2 * inner, 2 * inner, C, 0, 0, half);
+  // Cross-shaped recess: two arms that reach the side panels' outer faces,
+  // stopping at the post inner faces so the corner blocks stay solid.
+  // Starts 2·eps below panelTop: the plate's underside sits at panelTop − eps,
+  // and a coplanar cutter face there leaves zero-volume slivers.
+  const recessH = lidRecess + 2 * eps;
+  const recessZ = panelTop - 2 * eps + recessH / 2;
+  const reach = 2 * (panelOuter + clear);
+  const cuts = [
+    opening,
+    mBox(2 * inner, reach, recessH, 0, 0, recessZ),
+    mBox(reach, 2 * inner, recessH, 0, 0, recessZ),
+    ...panelSlotCutters(L, postTop, panelTop, false),
   ];
 
-  let ring = mUnionAll([...cornerBlocks, ...sideRails]);
-
-  // ── Groove cutters ─────────────────────────────────────────────────────────
-  // Each groove is a horizontal channel on the inner face of its rail.
-  // Cross-section (viewed from inner face):
-  //   height in Z = slotW  (t + 2*clear) — the gap the panel edge slides into
-  //   depth       = slotD  (engage + clear) — how far into the rail it reaches
-  // The groove is centred vertically on the lid (at lidCenterZ), leaving
-  // minWall of material on both the top and bottom faces.
-  //
-  // Inner-face distance from cube centre (the groove mouth sits here).
-  const innerEdge = half - cornerReach;
-
-  // Left/right grooves run from the open front face (Y = −half) past the back
-  // inner face (Y = +innerEdge) all the way to the back tongue stop
-  // (Y = innerEdge + engage).  This lets the panel's left/right edges ride
-  // through the back-corner-block area so the panel centres at Y = 0.
-  // Span: half + innerEdge + engage, centred at (innerEdge + engage − half) / 2.
-  const grooveSpanY   = half + innerEdge + engage + 2 * eps;
-  const grooveCentreY = (innerEdge + engage - half) / 2;
-
-  // Extend by 2*eps in the radial direction so the cutter breaks through the
-  // inner-face plane (at X = ±innerEdge) instead of being coplanar with it.
-  // Without this, the inner face is never removed and the groove appears sealed.
-  const grooveCutters = [
-    // right (+X) inner face: groove runs along Y through back-right corner block
-    mBox(slotD + 2 * eps, grooveSpanY, slotW,  innerEdge + slotD / 2, grooveCentreY, lidCenterZ),
-    // left  (−X) inner face: groove runs along Y through back-left corner block
-    mBox(slotD + 2 * eps, grooveSpanY, slotW, -innerEdge - slotD / 2, grooveCentreY, lidCenterZ),
-    // back  (+Y) inner face: groove runs along X, accepts the panel's back tongue.
-    // Extend by 2*eps in Y to break through the back inner face (coplanar guard).
-    // Width spans the full topPanelW so the cutter also covers the corner-block areas.
-    mBox(topPanelW + 2 * eps, slotD + 2 * eps, slotW, 0, innerEdge + slotD / 2, lidCenterZ),
-  ];
-
-  // ── Snap pockets ───────────────────────────────────────────────────────────
-  // Small rectangular pockets cut into the top and bottom walls of the left
-  // and right panel grooves, just inside the front opening.  The plug tongue
-  // ridges click into these when the plug is pushed home.
-  //
-  //   snapOffset — distance from the lid front face to the pocket centre in Y
-  //   snapW      — pocket width in Y
-  //   snapDepth  — how far the pocket cuts into the groove wall (in Z)
-  // Pocket dimensions match the triangular ridge in lidPlug.ts:
-  //   ridgeProtrusion = 0.12 mm  →  ridgeH = 2×0.12/√3 ≈ 0.139 mm
-  //   snapDepth  = ridgeProtrusion (pocket exactly as deep as ridge tip)
-  //   snapW      = ridgeH + 2×clear  (ridge base + clearance either side in Y)
-  const snapOffset     = 2.0;
-  const snapRidgeP  = 0.12;                              // plug ridge protrusion (from lidPlug.ts)
-  const snapRidgeH  = snapRidgeP * 2 / Math.sqrt(3);    // equilateral base height
-  const snapW       = snapRidgeH + 2 * clear;
-  const snapDepth   = snapRidgeP;
-  const snapCentY  = -(half - snapOffset);
-  const snapTopZ   = lidCenterZ + slotW / 2 + snapDepth / 2;
-  const snapBotZ   = lidCenterZ - slotW / 2 - snapDepth / 2;
-
-  const snapPockets = [
-    mBox(slotD, snapW, snapDepth,  innerEdge + slotD / 2, snapCentY, snapTopZ),  // right, top
-    mBox(slotD, snapW, snapDepth,  innerEdge + slotD / 2, snapCentY, snapBotZ),  // right, bottom
-    mBox(slotD, snapW, snapDepth, -innerEdge - slotD / 2, snapCentY, snapTopZ),  // left,  top
-    mBox(slotD, snapW, snapDepth, -innerEdge - slotD / 2, snapCentY, snapBotZ),  // left,  bottom
-  ];
-
-  ring = mSubtract(ring, mUnionAll([...grooveCutters, ...snapPockets]));
-
-  // ── Alignment tabs ─────────────────────────────────────────────────────────
-  // Four square pegs protruding downward from the lid underside (Z = half → half−tabH).
-  // Each peg drops into the inner-corner-removal pocket that frame.ts cuts at each
-  // corner post (the square void at sx*gi, sy*gi that clears groove intersections).
-  //
-  // gi        = grooveCenter − guideDepth/2   (pocket centre, mirrors frame.ts)
-  // grooveD   = slotD + guideDepth            (pocket size in frame, ~7.3 mm)
-  // tabSize   = grooveD − 2*clear             (fits inside pocket with clearance)
-  // Tab occupies only the portion of the inner-corner pocket that lies inside
-  // the post walls: from post inner face (half − cornerReach) to pocket outer
-  // edge (gi + grooveD/2). That span equals slotD, centred at grooveCenter.
-  const tabSize     = slotD;
-  const tabCentDist = L.grooveCenter;
-  const tabH        = params.bottomThickness;
-  // Outer face of each tab = the pocket wall it presses against.
-  const outerEdge   = L.grooveCenter + slotD / 2;
-
-  // Snap ridges: triangular prism on each outer face of the tab.
-  // Cross-section (radial-Z plane): right triangle with pointed bottom (easy
-  // entry) and horizontal top face (catches in the groove when snapped in).
-  //   (0,0)            → base, flush with tab face, at ridge bottom Z
-  //   (ridgeSize, ridgeSize) → tip: maximum protrusion, at ridge top Z
-  //   (0, ridgeSize)   → base, flush with tab face, at ridge top Z
-  // The rectangular groove in the frame pocket wall already accommodates this
-  // triangle (same bounding box), so frame.ts needs no changes.
-  const ridgeSize       = 0.5;
-  const ridgeProtrusion = ridgeSize * 0.2;                     // 80% smaller radial depth → 0.1 mm
-  const ridgeH          = ridgeProtrusion * 2 / Math.sqrt(3);  // equilateral height for that protrusion
-  const ridgeW          = slotD / 2;
-  const ridgeZ          = half - tabH + ridgeSize;             // centre Z of groove in frame.ts
-
-  // Equilateral triangle (all angles 60°): pointed bottom and top ramps make it
-  // equally easy to snap in and release.  Tip is centred in Z.
-  const triRidge: Array<[number, number]> = [
-    [0,              0       ],   // base bottom, flush with tab face
-    [ridgeProtrusion, ridgeH / 2], // apex — max protrusion, at mid-height
-    [0,              ridgeH  ],   // base top, flush with tab face
-  ];
-
-  if (tabSize > 0) {
-    const tabsAndRidges = corners.flatMap(([sx, sy]) => {
-      // Ridge on sx outer face — extrudes along −sx·Y, height along +Z, protrudes in sx·X.
-      // Col-major Mat4: col0=local-X→sx·X, col1=local-Y→+Z, col2=local-Z→−sx·Y
-      // mExtrudePrism always centres the extrusion on local Z (depth/2 each side),
-      // so the translation must be the CENTRE of the extrusion range — no ±ridgeW/2 offset.
-      const ridgeX = mExtrudePrism(triRidge, ridgeW,
-        [sx, 0, 0, 0,  0, 0, 1, 0,  0, -sx, 0, 0,
-         sx * outerEdge, sy * tabCentDist, ridgeZ - ridgeH / 2, 1,
-        ] as unknown as Mat4);
-
-      // Ridge on sy outer face — extrudes along sy·X, height along +Z, protrudes in sy·Y.
-      // Col-major Mat4: col0=local-X→sy·Y, col1=local-Y→+Z, col2=local-Z→sy·X
-      const ridgeY = mExtrudePrism(triRidge, ridgeW,
-        [0, sy, 0, 0,  0, 0, 1, 0,  sy, 0, 0, 0,
-         sx * tabCentDist, sy * outerEdge, ridgeZ - ridgeH / 2, 1,
-        ] as unknown as Mat4);
-
-      return [
-        mBox(tabSize, tabSize, tabH, sx * tabCentDist, sy * tabCentDist, half - tabH / 2),
-        ridgeX,
-        ridgeY,
-      ];
-    });
-    ring = ring.add(mUnionAll(tabsAndRidges));
+  const pegs = [];
+  for (const [sx, sy] of corners) {
+    const x = sx * L.attachOffset;
+    const y = sy * L.attachOffset;
+    if (params.lidAttach === 'magnet') {
+      cuts.push(mCylinderZ(L.attachHoleD / 2, 2 * L.postHoleDepth, x, y, postTop, 48));
+    } else {
+      // Peg reaches eps up into the lid so it fuses; the tip tapers for an easy start.
+      const r = L.attachHoleD / 2 - params.pegClearance;
+      const shaftH = params.pegDepth - PEG_LEAD_IN + eps;
+      pegs.push(mCylinderZ(r, shaftH, x, y, postTop + eps - shaftH / 2, 48));
+      pegs.push(mFrustumZ(r - PEG_TIP_INSET, r, PEG_LEAD_IN + eps, x, y,
+        postTop - params.pegDepth + PEG_LEAD_IN / 2 + eps / 2, 48));
+    }
   }
 
-  return manifoldToGeometry(ring);
+  let lid = mSubtract(body, mUnionAll(cuts));
+  if (pegs.length) lid = mUnion(lid, mUnionAll(pegs));
+  return manifoldToGeometry(lid);
+}
+
+/** The lid flipped face-down onto the bed (Z = 0), ready to slice. */
+export function buildLidForPrint(params: Params): BufferGeometry {
+  const g = buildLidFrame(params);
+  g.rotateX(Math.PI);
+  g.computeBoundingBox();
+  g.translate(0, 0, -g.boundingBox!.min.z);
+  g.computeVertexNormals();
+  return g;
 }

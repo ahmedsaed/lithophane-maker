@@ -1,7 +1,8 @@
 'use client';
 
 import { useStore } from '@/lib/store';
-import type { Params, GrayscaleMode } from '@/lib/geometry/types';
+import type { Params, GrayscaleMode, LidAttach } from '@/lib/geometry/types';
+import { maxPanelThickness, validateParams } from '@/lib/geometry/validate';
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -99,14 +100,29 @@ function Toggle({
   );
 }
 
+/** Panel-thickness slider ceiling: leaves MIN_WALL around each groove, within 0.8–6 mm. */
+function clampPanelMax(postSize: number, grooveClearance: number): number {
+  return Math.min(6, Math.max(0.8, maxPanelThickness(postSize, grooveClearance)));
+}
+
 export default function ParamsPanel() {
   const params = useStore((s) => s.params);
   const set = useStore((s) => s.setParams);
 
-  const panelThicknessMax = Math.min(6, Math.max(1.2, params.postSize - 2 * params.grooveClearance));
+  const panelThicknessMax = clampPanelMax(params.postSize, params.grooveClearance);
+  const issues = validateParams(params);
 
   return (
     <div>
+      {issues.length > 0 && (
+        <ul className="param-issues">
+          {issues.map((issue) => (
+            <li key={issue.message} className={`param-issue ${issue.severity}`}>
+              {issue.message}
+            </li>
+          ))}
+        </ul>
+      )}
       <Group title="Frame">
         <Slider
           label="Cube size"
@@ -121,22 +137,13 @@ export default function ParamsPanel() {
           label="Post size"
           unit=" mm"
           value={params.postSize}
-          min={2}
+          min={4}
           max={16}
           step={0.5}
           onChange={(v) => {
-            const newMax = Math.min(6, Math.max(1.2, v - 2 * params.grooveClearance));
+            const newMax = clampPanelMax(v, params.grooveClearance);
             set({ postSize: v, panelThickness: Math.min(params.panelThickness, newMax) });
           }}
-        />
-        <Toggle
-          label="Wedge chamfer"
-          options={[
-            { label: 'On', value: true },
-            { label: 'Off', value: false },
-          ]}
-          value={params.chamfer}
-          onChange={(v) => set({ chamfer: v as boolean })}
         />
         <Slider
           label="Bottom thickness"
@@ -147,6 +154,68 @@ export default function ParamsPanel() {
           step={0.5}
           onChange={(v) => set({ bottomThickness: v })}
         />
+      </Group>
+
+      <Group title="Lid">
+        <Toggle
+          label="Attach with"
+          options={[
+            { label: 'Press-fit', value: 'pressfit' },
+            { label: 'Magnets', value: 'magnet' },
+          ]}
+          value={params.lidAttach}
+          onChange={(v) => set({ lidAttach: v as LidAttach })}
+          description={
+            params.lidAttach === 'pressfit'
+              ? 'Fully printed: pegs under the lid press into holes in the posts.'
+              : 'Glue a disc magnet into each post top and each lid corner (8 total). Check the polarity before the glue sets.'
+          }
+        />
+        {params.lidAttach === 'pressfit' ? (
+          <>
+            <Slider
+              label="Peg depth"
+              unit=" mm"
+              value={params.pegDepth}
+              min={3}
+              max={15}
+              step={0.5}
+              onChange={(v) => set({ pegDepth: v })}
+              description="Longer pegs grip harder."
+            />
+            <Slider
+              label="Peg clearance"
+              unit=" mm"
+              value={params.pegClearance}
+              min={0}
+              max={0.3}
+              step={0.05}
+              onChange={(v) => set({ pegClearance: v })}
+              description="Gap around each peg. Lower = tighter. Use the clearance sweep test print to find yours."
+            />
+          </>
+        ) : (
+          <>
+            <Slider
+              label="Magnet diameter"
+              unit=" mm"
+              value={params.magnetDiameter}
+              min={3}
+              max={10}
+              step={0.5}
+              onChange={(v) => set({ magnetDiameter: v })}
+            />
+            <Slider
+              label="Magnet height"
+              unit=" mm"
+              value={params.magnetHeight}
+              min={1}
+              max={5}
+              step={0.5}
+              onChange={(v) => set({ magnetHeight: v })}
+            />
+          </>
+        )}
       </Group>
 
       <Group title="Panel">
@@ -167,7 +236,7 @@ export default function ParamsPanel() {
           max={0.6}
           step={0.05}
           onChange={(v) => {
-            const newMax = Math.min(6, Math.max(1.2, params.postSize - 2 * v));
+            const newMax = clampPanelMax(params.postSize, v);
             set({ grooveClearance: v, panelThickness: Math.min(params.panelThickness, newMax) });
           }}
         />

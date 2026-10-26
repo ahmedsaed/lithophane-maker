@@ -10,6 +10,11 @@ export interface PanelOptions {
   thickness: number;
   /** Flat border width that rides in the frame grooves (mm). */
   tongueWidth: number;
+  /**
+   * Image area in panel coordinates, when it isn't simply the panel inset by
+   * tongueWidth (e.g. a deeper hidden border at the top and bottom).
+   */
+  imageRect?: { minX: number; maxX: number; minY: number; maxY: number };
   lithoMin: number;
   lithoMax: number;
   heightMap: HeightMap;
@@ -62,16 +67,17 @@ export function buildLithophanePanel(opts: PanelOptions): BufferGeometry {
     mirrorX = false,
     reliefSign = 1,
     gamma = 1.0,
+    imageRect,
   } = opts;
 
   const nx = Math.max(1, Math.floor(cellsX));
   const ny = Math.max(1, Math.floor(cellsY));
   const vpr = nx + 1; // verts per row
 
-  const innerMinX = -W / 2 + tongueWidth;
-  const innerMaxX = W / 2 - tongueWidth;
-  const innerMinY = -H / 2 + tongueWidth;
-  const innerMaxY = H / 2 - tongueWidth;
+  const innerMinX = imageRect?.minX ?? -W / 2 + tongueWidth;
+  const innerMaxX = imageRect?.maxX ?? W / 2 - tongueWidth;
+  const innerMinY = imageRect?.minY ?? -H / 2 + tongueWidth;
+  const innerMaxY = imageRect?.maxY ?? H / 2 - tongueWidth;
   const hasImage = innerMaxX > innerMinX && innerMaxY > innerMinY;
 
   const frontZ = (i: number, j: number): number => {

@@ -412,3 +412,126 @@ h1 {
   font-size: 13px;
   color: var(--text);
 }
+
+.param-issues {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.param-issue {
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid;
+}
+
+.param-issue.error {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.param-issue.warning {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+}
+
+.title-row h1 {
+  margin: 0;
+}
+
+.beta-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--accent-2);
+  background: rgba(110, 168, 254, 0.12);
+  border-radius: 999px;
+  padding: 2px 8px;
+  cursor: default;
+}
+
+.github-icon {
+  margin-left: auto;
+  display: inline-flex;
+  color: var(--muted);
+}
+
+.github-icon:hover {
+  color: var(--text);
+}
+
+.github-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.github-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.github-card p {
+  margin: 6px 0 10px;
+  line-height: 1.5;
+}
+
+.github-card-links {
+  display: flex;
+  gap: 14px;
+}
+
+.github-card-links a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.github-card-links a:hover {
+  text-decoration: underline;
+}
+
+.blank-tag {
+  margin-left: 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.subtitle a,
+.field-desc a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.subtitle a:hover,
+.field-desc a:hover {
+  text-decoration: underline;
+}

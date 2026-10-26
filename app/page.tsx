@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import UploaderGrid from '@/components/UploaderGrid';
 import ParamsPanel from '@/components/ParamsPanel';
 import ExportPanel from '@/components/ExportPanel';
+import GitHubCard, { GitHubIconLink, GUIDE_URL } from '@/components/GitHubLink';
 import { useStore } from '@/lib/store';
 
 // WebGL canvas is browser-only; skip SSR during static export.
@@ -32,10 +33,15 @@ export default function Home() {
   return (
     <div className="app">
       <aside className="sidebar">
-        <h1>Lithophane Cube Maker</h1>
+        <div className="title-row">
+          <h1>Lithophane Cube Maker</h1>
+          <span className="beta-badge" title="Still being tested. Print the test pieces before a full cube.">Beta</span>
+          <GitHubIconLink />
+        </div>
         <p className="subtitle">
-          5 images → a backlit printable cube. Frame with a solid floor, sliding
-          side panels, and a drop-in lid.
+          5 images → a backlit printable cube. New here? Read the{' '}
+          <a href={GUIDE_URL} target="_blank" rel="noopener noreferrer">printing guide</a>{' '}
+          before your first print.
         </p>
 
         <div className="section">
@@ -52,6 +58,8 @@ export default function Home() {
           <h2>Export</h2>
           <ExportPanel />
         </div>
+
+        <GitHubCard />
       </aside>
 
       <main className="viewer">

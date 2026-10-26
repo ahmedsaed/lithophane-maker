@@ -3,7 +3,6 @@
 import { useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { PANEL_SLOTS, type PanelSlot } from '@/lib/geometry/types';
-import { cubeLayout } from '@/lib/geometry/layout';
 import CropModal from './CropModal';
 
 const LABELS: Record<PanelSlot, string> = {
@@ -72,7 +71,6 @@ function Slot({ slot, onCrop }: { slot: PanelSlot; onCrop: (slot: PanelSlot) => 
 export default function UploaderGrid() {
   const [cropSlot, setCropSlot] = useState<PanelSlot | null>(null);
   const slots = useStore((s) => s.slots);
-  const params = useStore((s) => s.params);
   const setCrop = useStore((s) => s.setCrop);
 
   const openCrop = (slot: PanelSlot) => setCropSlot(slot);
@@ -80,12 +78,8 @@ export default function UploaderGrid() {
 
   const cropData = cropSlot ? slots[cropSlot] : null;
 
-  const targetAspect = (() => {
-    if (!cropSlot) return 1;
-    const L = cubeLayout(params);
-    if (cropSlot === 'top') return L.topPanelW / L.topPanelD;
-    return L.sidePanelW / L.sidePanelH;
-  })();
+  // Every face shows a square image window.
+  const targetAspect = 1;
 
   return (
     <>

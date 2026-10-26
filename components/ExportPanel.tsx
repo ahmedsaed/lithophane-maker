@@ -5,12 +5,13 @@ import { saveAs } from 'file-saver';
 import { useStore } from '@/lib/store';
 import { fileToImageData } from '@/lib/image/loadImage';
 import { imageDataToHeightMap, cropHeightMap } from '@/lib/image/toHeightmap';
-import { exportPartsZip } from '@/lib/export/exportZip';
+import { exportCouponsZip, exportPartsZip } from '@/lib/export/exportZip';
+import { buildClearanceSweep, buildTestKit } from '@/lib/geometry/coupons';
+import { GUIDE_URL } from '@/components/GitHubLink';
 import { geometryToStlBlob } from '@/lib/export/exportStl';
 import { buildFrame } from '@/lib/geometry/frame';
-import { buildLidFrame } from '@/lib/geometry/lidFrame';
-import { buildLidPlug } from '@/lib/geometry/lidPlug';
-import { buildPanelFlat, buildTopPanelFlat } from '@/lib/geometry/assembly';
+import { buildLidForPrint } from '@/lib/geometry/lidFrame';
+import { BLANK_HEIGHTMAP, buildPanelFlat, buildTopPanelFlat, panelFileName } from '@/lib/geometry/assembly';
 import type { HeightMap, PanelSlot } from '@/lib/geometry/types';
 
 const SLOT_LABELS: Record<PanelSlot, string> = {
@@ -66,24 +67,9 @@ export default function ExportPanel() {
     setBusy(true);
     setStatus('Building lid…');
     try {
-      const blob = geometryToStlBlob(buildLidFrame(params));
+      const blob = geometryToStlBlob(buildLidForPrint(params));
       saveAs(blob, 'lid.stl');
       setStatus('Downloaded lid.stl');
-    } catch (err) {
-      console.error(err);
-      setStatus('Export failed — see console.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const onExportPlug = async () => {
-    setBusy(true);
-    setStatus('Building plug…');
-    try {
-      const blob = geometryToStlBlob(buildLidPlug(params));
-      saveAs(blob, 'plug.stl');
-      setStatus('Downloaded plug.stl');
     } catch (err) {
       console.error(err);
       setStatus('Export failed — see console.');
@@ -97,12 +83,12 @@ export default function ExportPanel() {
     const label = SLOT_LABELS[slot];
     setStatus(`Building ${label}…`);
     try {
-      const hm = await buildSlotHeightMap(slot);
-      if (!hm) return;
+      const photo = await buildSlotHeightMap(slot);
+      const hm = photo ?? BLANK_HEIGHTMAP;
       const geom = slot === 'top'
         ? buildTopPanelFlat(hm, params, params.exportResolution)
         : buildPanelFlat(slot, hm, params, params.exportResolution);
-      const filename = slot === 'top' ? 'top.stl' : `side-${slot}.stl`;
+      const filename = panelFileName(slot, !photo);
       saveAs(geometryToStlBlob(geom), filename);
       setStatus(`Downloaded ${filename}`);
     } catch (err) {
@@ -135,7 +121,27 @@ export default function ExportPanel() {
     }
   };
 
-  const count = Object.keys(slots).length;
+  const onExportCoupons = async (kind: 'kit' | 'sweep') => {
+    setBusy(true);
+    setStatus('Building test prints…');
+    try {
+      const filename = kind === 'kit' ? 'lithophane-test-kit.zip' : 'lithophane-clearance-sweep.zip';
+      const coupons = kind === 'kit' ? buildTestKit(params) : buildClearanceSweep(params);
+      await exportCouponsZip(coupons, filename);
+      setStatus(`Downloaded ${filename}`);
+    } catch (err) {
+      console.error(err);
+      setStatus('Export failed — see console.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const photos = Object.keys(slots).length;
+  const blanks = SLOT_ORDER.length - photos;
+  const summary = blanks === 0
+    ? 'All 5 panels have photos.'
+    : `${photos} photo${photos === 1 ? '' : 's'} + ${blanks} blank panel${blanks === 1 ? '' : 's'}. Add images above to replace the blanks.`;
 
   return (
     <div>
@@ -152,30 +158,46 @@ export default function ExportPanel() {
             Download
           </button>
         </div>
-        <div className="export-row">
-          <span className="export-label">Plug</span>
-          <button className="btn btn-sm" onClick={onExportPlug} disabled={busy}>
-            Download
-          </button>
-        </div>
-        {SLOT_ORDER.map((slot) =>
-          slots[slot] ? (
-            <div key={slot} className="export-row">
-              <span className="export-label">{SLOT_LABELS[slot]}</span>
-              <button className="btn btn-sm" onClick={() => onExportPanel(slot)} disabled={busy}>
-                Download
-              </button>
-            </div>
-          ) : null,
-        )}
+        {SLOT_ORDER.map((slot) => (
+          <div key={slot} className="export-row">
+            <span className="export-label">
+              {SLOT_LABELS[slot]}
+              {!slots[slot] && <span className="blank-tag">blank</span>}
+            </span>
+            <button className="btn btn-sm" onClick={() => onExportPanel(slot)} disabled={busy}>
+              Download
+            </button>
+          </div>
+        ))}
       </div>
 
       <button className="btn" style={{ marginTop: 10 }} onClick={onExportAll} disabled={busy}>
         {busy ? 'Generating…' : 'Download all (.zip)'}
       </button>
 
+      <p className="field-desc" style={{ marginTop: 14 }}>
+        Not sure about the fit? Print small test pieces first. They take minutes,
+        not hours. The{' '}
+        <a href={GUIDE_URL} target="_blank" rel="noopener noreferrer">printing guide</a>{' '}
+        walks through them.
+      </p>
+      <div className="export-parts">
+        <div className="export-row">
+          <span className="export-label">Test kit</span>
+          <button className="btn btn-sm" onClick={() => onExportCoupons('kit')} disabled={busy}>
+            Download
+          </button>
+        </div>
+        <div className="export-row">
+          <span className="export-label">Clearance sweep</span>
+          <button className="btn btn-sm" onClick={() => onExportCoupons('sweep')} disabled={busy}>
+            Download
+          </button>
+        </div>
+      </div>
+
       <div className="status">
-        {status || `${count} of 4 images added — frame always included.`}
+        {status || summary}
       </div>
     </div>
   );
