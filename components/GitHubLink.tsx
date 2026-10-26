@@ -1,6 +1,7 @@
 const REPO_URL = 'https://github.com/ahmedsaed/lithophane-maker';
-/** The printing guide, on the default branch. */
-export const GUIDE_URL = `${REPO_URL}/blob/HEAD/PRINTING.md`;
+export const ISSUES_URL = `${REPO_URL}/issues/new`;
+/** The printing guide page (app/guide). */
+export const GUIDE_URL = '/guide/';
 
 function GitHubMark({ size = 16 }: { size?: number }) {
   return (
@@ -33,7 +34,7 @@ export default function GitHubCard() {
       </p>
       <div className="github-card-links">
         <a href={REPO_URL} target="_blank" rel="noopener noreferrer">View on GitHub</a>
-        <a href={`${REPO_URL}/issues/new`} target="_blank" rel="noopener noreferrer">Report an issue</a>
+        <a href={ISSUES_URL} target="_blank" rel="noopener noreferrer">Report an issue</a>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 
 > **Beta.** The geometry is checked by automated tests, but real-world fits
 > vary by printer. Print the test pieces (Export → Test prints) before a full
-> cube, and please report how it went. See the **[printing guide](PRINTING.md)**.
+> cube, and please report how it went. The **printing guide** is built into the app at `/guide`.
 
 A fully client-side web tool that turns **5 images** (4 sides + 1 top) into a
 3D-printable, backlit **lithophane cube**. Everything — image processing, mesh
@@ -71,9 +71,10 @@ flagged there.
 
 ## Printing
 
-See **[PRINTING.md](PRINTING.md)**. It covers a short printer tune-up, the fit
-test pieces (groove and peg clearance), lithophane slicer settings with a
-brightness test, and assembly.
+The printing guide is part of the app: open **printing guide** under the title,
+or go to `/guide` (source: [`app/guide/page.tsx`](app/guide/page.tsx)). It
+covers a short printer tune-up, the fit test pieces (groove and peg
+clearance), lithophane slicer settings with a brightness test, and assembly.
 
 ## Testing
 

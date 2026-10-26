@@ -36,8 +36,8 @@ Assembly:
 Tips:
   - Lithophanes: plain white PLA, 0.08-0.12 mm layers, 100% infill.
   - Print the test kit and clearance sweep first to dial in the fits.
-  - Full printing guide:
-    https://github.com/ahmedsaed/lithophane-maker/blob/HEAD/PRINTING.md
+  - Full printing guide: the "printing guide" link under the title in the
+    Lithophane Cube Maker.
 `;
 
 /** Build all printable parts and download them as a single zip. */
@@ -80,8 +80,8 @@ Small pieces cut from the real parts, so you can check fit and image settings
 in minutes instead of printing a whole cube. Print them with the same
 printer, material and slicer settings you will use for the cube.
 
-Full walkthrough, including slicer settings:
-https://github.com/ahmedsaed/lithophane-maker/blob/HEAD/PRINTING.md
+Full walkthrough, including slicer settings: open "printing guide" under
+the title in the Lithophane Cube Maker.
 
 TEST KIT (current settings)
 
