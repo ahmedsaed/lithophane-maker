@@ -1,4 +1,4 @@
-import { version } from '../../package.json';
+import pkg from '../../package.json';
 import type { CropRect, ImageAdjust, Params, PanelSlot } from '../geometry/types';
 import { PANEL_SLOTS } from '../geometry/types';
 import { NEUTRAL_ADJUST } from '../geometry/constants';
@@ -32,7 +32,7 @@ export function settingsJson(params: Params, photos?: PhotoRecords, exportedAt =
     {
       app: 'Lithophane Cube Maker',
       url: 'https://lithophane-maker.merope.dev',
-      version,
+      version: pkg.version,
       exportedAt: exportedAt.toISOString(),
       params,
       // Calculated from params, recorded for reference only.

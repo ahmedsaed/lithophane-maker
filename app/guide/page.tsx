@@ -1,11 +1,40 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GitHubIconLink, ISSUES_URL } from '@/components/GitHubLink';
+import { SITE_NAME } from '@/lib/site';
+
+// The site's social card. A page that sets openGraph loses the image it would
+// otherwise inherit from app/opengraph-image.png, so name it here.
+const SOCIAL_IMAGE = {
+  url: '/opengraph-image.png',
+  width: 1200,
+  height: 630,
+  alt: 'A lit lithophane cube lamp beside the words Lithophane Cube Maker: turn five photos into a 3D-printable lithophane lamp.',
+};
+
+const GUIDE_DESCRIPTION =
+  'How to print a lithophane cube lamp that fits first time: tune your printer, check the fits with small test pieces, dial in the lithophane, then print and assemble.';
 
 export const metadata: Metadata = {
-  title: 'Printing Guide · Lithophane Cube Maker',
-  description:
-    'Tune your printer, check the fits with small test pieces, dial in the lithophane, then print and assemble the cube.',
+  title: 'Printing Guide',
+  description: GUIDE_DESCRIPTION,
+  alternates: { canonical: '/guide/' },
+  // Next replaces openGraph rather than merging it, so restate the site fields.
+  openGraph: {
+    type: 'article',
+    siteName: SITE_NAME,
+    url: '/guide/',
+    title: `Printing Guide · ${SITE_NAME}`,
+    description: GUIDE_DESCRIPTION,
+    locale: 'en_US',
+    images: [SOCIAL_IMAGE],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `Printing Guide · ${SITE_NAME}`,
+    description: GUIDE_DESCRIPTION,
+    images: [SOCIAL_IMAGE],
+  },
 };
 
 function Table({ head, rows }: { head: string[]; rows: React.ReactNode[][] }) {

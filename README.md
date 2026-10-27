@@ -2,6 +2,8 @@
 
 **Turn five photos into a 3D-printable lithophane lamp.**
 
+![A lit lithophane cube lamp made with Lithophane Cube Maker](app/opengraph-image.png)
+
 **Try it: [lithophane-maker.merope.dev](https://lithophane-maker.merope.dev)**
 
 A lithophane is a thin plastic panel that shows a picture when light shines

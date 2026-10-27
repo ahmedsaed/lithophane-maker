@@ -1,0 +1,124 @@
+<!doctype html>
+<!--
+  Source of app/opengraph-image.png and app/twitter-image.png (1200 × 630).
+
+  To regenerate after a design change:
+    1. Put next to this file: three.module.js (node_modules/three/build/),
+       jsm/STLLoader.js (node_modules/three/examples/jsm/loaders/), and
+       frame.stl + lid.stl exported in assembled position from buildFrame /
+       buildLidFrame with DEFAULT_PARAMS.
+    2. Serve this folder (python3 -m http.server) and open card.html in a
+       browser at exactly 1200 × 630, device pixel ratio 1.
+    3. When the page title becomes "done", screenshot the full page to
+       app/opengraph-image.png and app/twitter-image.png.
+
+  The glowing pictures are generated in the page, not photos, and sit at the
+  real panel position so the frame covers their borders as on a printed cube.
+-->
+<html><head><meta charset="utf-8">
+<style>
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #0f1115; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+  .glow { position: absolute; right: 60px; top: 40px; width: 620px; height: 560px; background: radial-gradient(closest-side, rgba(247, 180, 90, 0.22), rgba(247, 180, 90, 0) 75%); }
+  canvas#gl { position: absolute; right: 0; top: 0; }
+  .text { position: absolute; left: 72px; top: 0; height: 630px; width: 560px; display: flex; flex-direction: column; justify-content: center; }
+  h1 { margin: 0; color: #e6e9ef; font-size: 64px; line-height: 1.05; font-weight: 700; letter-spacing: -0.01em; }
+  p.sub { margin: 22px 0 0; color: #b4bcc9; font-size: 30px; line-height: 1.3; }
+  .chips { display: flex; gap: 12px; margin-top: 30px; flex-wrap: wrap; }
+  .chip { color: #f7c27a; border: 1.5px solid rgba(247, 180, 90, 0.55); background: rgba(247, 180, 90, 0.08); border-radius: 999px; padding: 8px 18px; font-size: 22px; font-weight: 600; }
+  .url { position: absolute; left: 72px; bottom: 44px; color: #8a93a2; font-size: 22px; letter-spacing: 0.01em; }
+</style>
+<script type="importmap">{"imports":{"three":"./three.module.js"}}</script>
+</head><body>
+<div class="glow"></div>
+<canvas id="gl"></canvas>
+<div class="text">
+  <h1>Lithophane<br>Cube Maker</h1>
+  <p class="sub">Turn five photos into a 3D&#8209;printable lithophane lamp.</p>
+  <div class="chips"><span class="chip">Free</span><span class="chip">Runs in your browser</span><span class="chip">Open source</span></div>
+</div>
+<div class="url">lithophane-maker.merope.dev</div>
+<script type="module">
+import * as THREE from 'three';
+import { STLLoader } from './jsm/STLLoader.js';
+
+// Lit-lithophane palette: thick (dark) to thin (bright), warm light through white PLA.
+const STOPS = [[0, [38, 18, 6]], [0.45, [150, 78, 30]], [0.8, [244, 186, 112]], [1, [255, 236, 200]]];
+function warm(v) {
+  v = Math.max(0, Math.min(1, v));
+  for (let i = 1; i < STOPS.length; i++) {
+    const [b, cb] = STOPS[i], [a, ca] = STOPS[i - 1];
+    if (v <= b) { const t = (v - a) / (b - a); return ca.map((c, k) => c + (cb[k] - c) * t); }
+  }
+  return STOPS[STOPS.length - 1][1];
+}
+function picture(fn) {
+  const N = 512, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d'), img = g.createImageData(N, N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const [r, gr, b] = warm(fn(x / N, y / N));
+    const i = (y * N + x) * 4; img.data[i] = r; img.data[i + 1] = gr; img.data[i + 2] = b; img.data[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; return tex;
+}
+const ridge = (x, f, a, p, base) => base + a * Math.sin(x * f + p) + a * 0.45 * Math.sin(x * f * 2.3 + p * 1.7);
+// Mountains at sunset.
+const sunset = picture((x, y) => {
+  let v = 0.35 + 0.55 * Math.pow(y, 1.4);                       // sky brightens toward the horizon
+  const d = Math.hypot(x - 0.62, y - 0.52); if (d < 0.11) v = 1; else v += 0.35 * Math.exp(-d * 9);
+  if (y > ridge(x, 7, 0.05, 1, 0.58)) v = 0.42;
+  if (y > ridge(x, 11, 0.04, 3, 0.7)) v = 0.24;
+  if (y > ridge(x, 5, 0.03, 0.5, 0.84)) v = 0.08;
+  return v;
+});
+// Crescent moon and stars over a hill.
+const night = picture((x, y) => {
+  let v = 0.12 + 0.18 * y;
+  const m1 = Math.hypot(x - 0.36, y - 0.33), m2 = Math.hypot(x - 0.41, y - 0.29);
+  if (m1 < 0.15 && m2 > 0.13) v = 0.97; else v += 0.12 * Math.exp(-m1 * 8);
+  const sx = Math.floor(x * 24), sy = Math.floor(y * 24), h = Math.sin(sx * 12.9898 + sy * 78.233) * 43758.5453;
+  if (h - Math.floor(h) > 0.93 && y < 0.62 && Math.hypot((x * 24) % 1 - 0.5, (y * 24) % 1 - 0.5) < 0.16) v = 0.85;
+  if (y > ridge(x, 4, 0.035, 2, 0.74)) v = 0.06;
+  return v;
+});
+// Sun with rays.
+const sun = picture((x, y) => {
+  const dx = x - 0.5, dy = y - 0.5, r = Math.hypot(dx, dy), th = Math.atan2(dy, dx);
+  if (r < 0.16) return 1;
+  if (r < 0.19) return 0.15;
+  const rays = 0.5 + 0.5 * Math.cos(th * 14);
+  return 0.18 + 0.75 * rays * Math.exp(-(r - 0.19) * 3.2);
+});
+
+const W = 640, H = 630;
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gl'), antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(1.2, -2, 3); scene.add(key);
+const rim = new THREE.DirectionalLight(0xffd9a8, 0.7); rim.position.set(-2, 1, 1.5); scene.add(rim);
+
+const loader = new STLLoader();
+const frameMat = new THREE.MeshStandardMaterial({ color: 0x5a6170, roughness: 0.65, metalness: 0.05, flatShading: true });
+for (const f of ['frame', 'lid']) scene.add(new THREE.Mesh(await loader.loadAsync(`./${f}.stl`), frameMat));
+
+// Glowing panels at the side panels' outer faces (47.4 mm out), the full 81.2 mm
+// panel size so the frame covers their borders as it does on a real cube.
+const OUT = 47.4, SIZE = 81.2;
+const panel = (tex, pos, rot) => {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(SIZE, SIZE), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }));
+  m.position.set(...pos); m.rotation.set(...rot); scene.add(m);
+};
+panel(sunset, [0, -OUT, 0], [Math.PI / 2, 0, 0]);            // front (−Y), upright
+panel(night, [OUT, 0, 0], [Math.PI / 2, Math.PI / 2, 0]);     // right (+X), upright
+panel(sun, [0, 0, OUT], [0, 0, 0]);                           // top (+Z)
+
+const cam = new THREE.PerspectiveCamera(30, W / H, 1, 2000);
+cam.up.set(0, 0, 1);
+cam.position.set(205, -265, 210);
+cam.lookAt(0, 0, -6);
+renderer.render(scene, cam);
+document.title = 'done';
+</script>
+</body></html>

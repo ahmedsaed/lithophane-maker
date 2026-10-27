@@ -5,6 +5,7 @@ import UploaderGrid from '@/components/UploaderGrid';
 import ParamsPanel from '@/components/ParamsPanel';
 import ExportPanel from '@/components/ExportPanel';
 import GitHubCard, { GitHubIconLink, GUIDE_URL } from '@/components/GitHubLink';
+import { AUTHOR, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site';
 import { useStore } from '@/lib/store';
 
 // WebGL canvas is browser-only; skip SSR during static export.
@@ -29,9 +30,28 @@ function ExplodeControl() {
   );
 }
 
+/** schema.org description of the tool, for search results. */
+const STRUCTURED_DATA = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: SITE_NAME,
+  url: `${SITE_URL}/`,
+  description: SITE_DESCRIPTION,
+  applicationCategory: 'DesignApplication',
+  operatingSystem: 'Any (runs in a web browser)',
+  isAccessibleForFree: true,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  license: 'https://opensource.org/licenses/MIT',
+  author: { '@type': 'Person', name: AUTHOR },
+};
+
 export default function Home() {
   return (
     <div className="app">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
+      />
       <aside className="sidebar">
         <div className="title-row">
           <h1>Lithophane Cube Maker</h1>
