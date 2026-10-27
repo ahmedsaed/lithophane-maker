@@ -66,10 +66,24 @@ function Parts() {
   );
 }
 
+/** True below the phone breakpoint in globals.css, where the preview is small. */
+function useNarrowScreen(): boolean {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 760px)');
+    setNarrow(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setNarrow(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return narrow;
+}
+
 export default function Viewer3D() {
   const cubeSize = useStore((s) => s.params.cubeSize);
   const cam = cubeSize * 1.8;
   const [manifoldReady, setManifoldReady] = useState(false);
+  const narrow = useNarrowScreen();
 
   useEffect(() => {
     initManifold().then(() => setManifoldReady(true));
@@ -101,9 +115,12 @@ export default function Viewer3D() {
       />
       {manifoldReady && <Parts />}
       <OrbitControls makeDefault enableDamping />
-      <GizmoHelper alignment="bottom-right" margin={[60, 60]}>
-        <GizmoViewport labelColor="white" axisHeadScale={1} />
-      </GizmoHelper>
+      {/* On a phone-sized preview the axis gizmo covers the cube and the explode slider. */}
+      {!narrow && (
+        <GizmoHelper alignment="bottom-right" margin={[60, 60]}>
+          <GizmoViewport labelColor="white" axisHeadScale={1} />
+        </GizmoHelper>
+      )}
     </Canvas>
   );
 }

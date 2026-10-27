@@ -65,7 +65,8 @@ export default function Home() {
       <main className="viewer">
         <Viewer3D />
         <div className="overlay">
-          Drag to orbit · scroll to zoom · use the slider to explode
+          <span className="hint-pointer">Drag to orbit · scroll to zoom · use the slider to explode</span>
+          <span className="hint-touch">Drag to orbit · pinch to zoom</span>
         </div>
         <ExplodeControl />
       </main>
