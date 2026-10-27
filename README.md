@@ -34,7 +34,8 @@ hold them together. Put a light inside and all five pictures light up.
   live preview. Apply one photo's settings to all of them in one click.
 
 **The cube**
-- Any size from 40 to 200 mm, with an adjustable frame width.
+- Any size from 40 to 200 mm. The frame is sized automatically to fit the
+  grooves and the pegs or magnets, as slim as it can be.
 - Every face is framed evenly on all four sides, and all five panels are the
   same square, so all five pictures look the same.
 - The lid attaches with **printed press-fit pegs** (no extra parts) or **disc

@@ -4,7 +4,8 @@ import { buildAllParts } from './assembly';
 import { cubeLayout } from './layout';
 import { DEFAULT_PARAMS } from './constants';
 import { geometryToManifold, mBox, mIntersect, mTranslate, mUnionAll, withManifoldScope, type Manifold } from './mCsg';
-import { validateParams, maxPanelThickness } from './validate';
+import { validateParams } from './validate';
+import { frameWidth } from './layout';
 import type { HeightMap, Params, PartId } from './types';
 
 // Overlaps below this (mm³) are floating-point noise from touching faces.
@@ -31,15 +32,10 @@ function randomParams(rand: () => number): Params {
   const pick = <T,>(xs: T[]) => xs[Math.floor(rand() * xs.length)];
   const range = (min: number, max: number, step: number) =>
     min + Math.round((rand() * (max - min)) / step) * step;
-  const frameWidth = range(8, 28.8, 0.1);
-  const grooveClearance = range(0.1, 0.6, 0.05);
-  // The same ceiling the Max thickness slider uses.
-  const maxTop = Math.min(5, Math.max(1.5, maxPanelThickness(frameWidth, grooveClearance)));
   return {
     ...DEFAULT_PARAMS,
     cubeSize: range(40, 200, 1),
-    frameWidth,
-    grooveClearance,
+    grooveClearance: range(0.1, 0.6, 0.05),
     lidAttach: pick(['pressfit', 'magnet'] as const),
     pegDepth: range(3, 15, 0.5),
     pegClearance: range(0, 0.3, 0.05),
@@ -47,7 +43,7 @@ function randomParams(rand: () => number): Params {
     magnetHeight: pick([1, 1.5, 2, 3, 4, 5]),
     relief: pick(['inward', 'outward'] as const),
     lithoMin: range(0.4, 1.5, 0.05),
-    lithoMax: range(1.5, maxTop, 0.1),
+    lithoMax: range(1.5, 5, 0.1),
     cableHoles: pick([[], [{ diameter: range(1, 40, 1), x: 0, y: 0 }]]),
   };
 }
@@ -152,9 +148,23 @@ describe('validateParams', () => {
     expect(validateParams(DEFAULT_PARAMS)).toEqual([]);
   });
 
-  it('rejects panels too thick for the frame', () => {
-    const issues = validateParams({ ...DEFAULT_PARAMS, frameWidth: 7.2, lithoMax: 3 });
-    expect(issues.some((i) => i.severity === 'error')).toBe(true);
+  it('sizes the frame to what the posts hold', () => {
+    // 5 mm border + 0.2 clearance + 6.8 mm peg hole + 2 × 1.2 mm walls: the tested cube.
+    expect(frameWidth(DEFAULT_PARAMS)).toBeCloseTo(14.4, 6);
+    // A 6 mm magnet's 6.2 mm hole is smaller than the peg's.
+    expect(frameWidth({ ...DEFAULT_PARAMS, lidAttach: 'magnet' })).toBeCloseTo(13.8, 6);
+  });
+
+  it('widens the frame for large magnets instead of rejecting them', () => {
+    const p = { ...DEFAULT_PARAMS, lidAttach: 'magnet' as const, magnetDiameter: 10 };
+    expect(frameWidth(p)).toBeGreaterThan(14.4);
+    expect(validateParams(p)).toEqual([]);
+  });
+
+  it('widens the frame for thick panels instead of rejecting them', () => {
+    const p = { ...DEFAULT_PARAMS, lithoMax: 5 };
+    expect(frameWidth(p)).toBeGreaterThan(14.4);
+    expect(validateParams(p).filter((i) => i.severity === 'error')).toEqual([]);
   });
 
   it('rejects a cable hole wider than the floor', () => {
@@ -162,13 +172,8 @@ describe('validateParams', () => {
     expect(issues.some((i) => i.severity === 'error')).toBe(true);
   });
 
-  it('rejects a frame too wide for the cube', () => {
-    const issues = validateParams({ ...DEFAULT_PARAMS, cubeSize: 50, frameWidth: 26 });
-    expect(issues.some((i) => i.severity === 'error')).toBe(true);
-  });
-
-  it('rejects magnets too large for the posts', () => {
-    const issues = validateParams({ ...DEFAULT_PARAMS, lidAttach: 'magnet', magnetDiameter: 10 });
+  it('rejects a cube too small to leave a picture inside its frame', () => {
+    const issues = validateParams({ ...DEFAULT_PARAMS, cubeSize: 28 });
     expect(issues.some((i) => i.severity === 'error')).toBe(true);
   });
 
@@ -209,10 +214,10 @@ describe('assembled geometry', () => {
       checked++;
       const problems = assemblyProblems(params);
       if (problems.length) {
-        const { cubeSize, frameWidth, lithoMax, grooveClearance, relief, cableHoles,
+        const { cubeSize, lithoMax, grooveClearance, relief, cableHoles,
           lidAttach, pegDepth, pegClearance, magnetDiameter, magnetHeight } = params;
         failures.push(
-          JSON.stringify({ cubeSize, frameWidth, lithoMax, grooveClearance, relief, cableHoles,
+          JSON.stringify({ cubeSize, lithoMax, grooveClearance, relief, cableHoles,
             lidAttach, pegDepth, pegClearance, magnetDiameter, magnetHeight }) +
           '\n    ' + problems.join('\n    '),
         );

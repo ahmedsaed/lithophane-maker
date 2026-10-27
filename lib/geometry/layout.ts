@@ -76,8 +76,6 @@ export const LID_RECESS_GAP = 0.2;
  * thickness; at the defaults it matches the geometry the test prints used.
  */
 export const OUTER_WALL = 2.4;
-/** Groove depth per mm of frame width, capped at `tongueWidth` (0.7 × the old post size). */
-export const ENGAGE_PER_FRAME = 0.7 / 1.8;
 /**
  * Most samples across one exported panel. Keeps a panel's mesh small enough to
  * build and download in a browser; validateParams warns when it limits detail.
@@ -95,17 +93,49 @@ export const PEG_HOLE_EXTRA = 0.5;
 /** Wall left around a press-fit peg hole in the post (mm). */
 export const MIN_ATTACH_WALL = 1.2;
 
+/** Peg hole diameter (mm): the size the press-fit test prints validated. Pegs are this minus 2 × pegClearance. */
+export const PEG_HOLE_D = 6.8;
+
+/** Diameter of the peg or magnet hole in each post top and lid corner. */
+export function attachHoleDiameter(params: Params): number {
+  return params.lidAttach === 'magnet' ? params.magnetDiameter + MAGNET_FIT : PEG_HOLE_D;
+}
+
+/**
+ * The frame width: the narrowest post that holds everything it has to, which
+ * is also the visible band around every window (posts, bottom rail, lid).
+ *
+ * Along the face: the panel's border in its groove, the clearance, and the peg
+ * or magnet hole with a wall either side. Into the cube, from the face: the
+ * outer wall, the panel in its slot, the groove's inner wall, then `clear`
+ * and the top panel's border resting on the corner support. And a magnet's
+ * hole must fit the lid's corner block, which is as tall as the frame is wide.
+ * Wider is only a
+ * style choice, and narrower would mean shallower grooves or smaller pegs, so
+ * it is not a setting.
+ */
+export function frameWidth(params: Params): number {
+  const clear = params.grooveClearance;
+  const border = params.tongueWidth;
+  const along = border + clear + attachHoleDiameter(params) + 2 * MIN_ATTACH_WALL;
+  const into = OUTER_WALL + (clear + params.lithoMax + clear) + RAIL_INNER_WALL + clear + border;
+  // The lid's corner block is as tall as the frame is wide; a magnet needs its
+  // hole there plus a wall above it.
+  const magnetDepth = params.lidAttach === 'magnet' ? params.magnetHeight + MAGNET_FIT + MIN_ATTACH_WALL : 0;
+  return Math.max(along, into, magnetDepth);
+}
+
 export function cubeLayout(params: Params): CubeLayout {
   const C = params.cubeSize;
   const half = C / 2;
-  // The frame width is the visible band around each window.
-  const cornerReach = params.frameWidth;
   // A panel is as thick as its darkest point; its flat border is the same.
   const t = params.lithoMax;
   const clear = params.grooveClearance;
-  // How far a panel's border reaches into its groove. Narrow frames get
-  // shallower grooves so the posts keep room for the peg or magnet.
-  const engage = Math.min(params.tongueWidth, cornerReach * ENGAGE_PER_FRAME);
+  // How far a panel's border reaches into its groove (= the border's width).
+  const engage = params.tongueWidth;
+  // The frame width — the visible band around each window — is sized to fit
+  // what the posts hold, not chosen: see frameWidth().
+  const cornerReach = frameWidth(params);
 
   // Every panel's outer face sits OUTER_WALL + clear behind its cube face,
   // whatever the frame width or panel thickness, so the wall in front of each
@@ -141,13 +171,10 @@ export function cubeLayout(params: Params): CubeLayout {
   const topPanelD = sidePanelW;
 
   // Pegs / magnets sit in the solid square at each post's outer corner, which
-  // starts where the grooves and the inner-corner pocket end.
+  // starts where the grooves end.
   const postCornerSolid = cornerReach - engage - clear;
   const attachOffset = half - postCornerSolid / 2;
-  const pegHoleD = postCornerSolid - 2 * MIN_ATTACH_WALL;
-  const attachHoleD = params.lidAttach === 'magnet'
-    ? params.magnetDiameter + MAGNET_FIT
-    : pegHoleD;
+  const attachHoleD = attachHoleDiameter(params);
   const postHoleDepth = params.lidAttach === 'magnet'
     ? params.magnetHeight + MAGNET_FIT
     : params.pegDepth + PEG_HOLE_EXTRA;

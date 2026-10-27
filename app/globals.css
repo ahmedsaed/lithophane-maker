@@ -877,3 +877,8 @@ h1 {
     max-height: 40vh;
   }
 }
+
+.derived-info strong {
+  color: var(--text);
+  font-weight: 600;
+}

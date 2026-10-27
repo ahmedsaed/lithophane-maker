@@ -29,11 +29,6 @@ export type GrayscaleMode = 'rec601' | 'rec709' | 'average' | 'luminosity';
 export interface Params {
   /** Outer edge length of the cube. */
   cubeSize: number;
-  /**
-   * Width of the frame band visible around every panel window (mm). The posts,
-   * the bottom rail and the lid are all this wide; post internals derive from it.
-   */
-  frameWidth: number;
   /** Minimum (brightest) lithophane thickness. */
   lithoMin: number;
   /** Maximum (darkest) lithophane thickness; also the panel's thickness, border included. */

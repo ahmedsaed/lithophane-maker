@@ -3,8 +3,6 @@ import type { ImageAdjust, Params } from './types';
 /** Sensible defaults for a 100 mm desktop lithophane cube (all mm). */
 export const DEFAULT_PARAMS: Params = {
   cubeSize: 100,
-  // 14.4 mm frame band = the 8 mm post the clearance test prints were made with.
-  frameWidth: 14.4,
   lithoMin: 0.7,
   lithoMax: 2.8,
   grooveClearance: 0.2,

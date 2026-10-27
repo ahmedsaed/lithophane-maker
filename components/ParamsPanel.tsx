@@ -3,23 +3,16 @@
 import { useStore } from '@/lib/store';
 import type { Params, LidAttach } from '@/lib/geometry/types';
 import { GUIDE_URL } from '@/components/GitHubLink';
-import { maxPanelThickness, validateParams } from '@/lib/geometry/validate';
+import { validateParams } from '@/lib/geometry/validate';
+import { cubeLayout } from '@/lib/geometry/layout';
 import { Group, Slider, Toggle } from '@/components/Controls';
-
-/**
- * Max-thickness slider ceiling. The panel is as thick as its darkest point, so
- * this also keeps MIN_WALL around each groove; held within 1.5–5 mm.
- */
-function lithoMaxCeiling(frameWidth: number, grooveClearance: number): number {
-  return Math.min(5, Math.max(1.5, maxPanelThickness(frameWidth, grooveClearance)));
-}
 
 export default function ParamsPanel() {
   const params = useStore((s) => s.params);
   const set = useStore((s) => s.setParams);
 
-  const lithoMaxTop = lithoMaxCeiling(params.frameWidth, params.grooveClearance);
   const issues = validateParams(params);
+  const L = cubeLayout(params);
 
   return (
     <div>
@@ -42,18 +35,11 @@ export default function ParamsPanel() {
           step={1}
           onChange={(v) => set({ cubeSize: v })}
         />
-        <Slider
-          label="Frame width"
-          unit=" mm"
-          value={params.frameWidth}
-          min={8}
-          max={28.8}
-          step={0.1}
-          onChange={(v) =>
-            set({ frameWidth: v, lithoMax: Math.min(params.lithoMax, lithoMaxCeiling(v, params.grooveClearance)) })
-          }
-          description="The band around every picture: posts, bottom rail and lid. About 10 mm is the narrowest that leaves room for the pegs (14 mm for 6 mm magnets)."
-        />
+        <p className="field-desc derived-info">
+          Frame <strong>{L.cornerReach.toFixed(1)} mm</strong> wide, picture{' '}
+          <strong>{Math.max(0, 2 * L.windowHalf).toFixed(1)} mm</strong> square. The frame is
+          sized to fit the grooves and the {params.lidAttach === 'magnet' ? 'magnets' : 'pegs'}.
+        </p>
         <Slider
           label="Cable hole ⌀"
           unit=" mm"
@@ -131,7 +117,7 @@ export default function ParamsPanel() {
           max={0.6}
           step={0.05}
           onChange={(v) =>
-            set({ grooveClearance: v, lithoMax: Math.min(params.lithoMax, lithoMaxCeiling(params.frameWidth, v)) })
+            set({ grooveClearance: v })
           }
           description="Gap around each panel edge in its groove. Lower = tighter."
         />
@@ -162,9 +148,9 @@ export default function ParamsPanel() {
         <Slider
           label="Max thickness (dark)"
           unit=" mm"
-          value={Math.min(params.lithoMax, lithoMaxTop)}
+          value={params.lithoMax}
           min={1.5}
-          max={lithoMaxTop}
+          max={5}
           step={0.1}
           onChange={(v) => set({ lithoMax: v })}
           description="Also the thickness of the whole panel, border included."
