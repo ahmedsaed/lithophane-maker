@@ -1,8 +1,8 @@
 'use client';
 
 import { create } from 'zustand';
-import type { Params, PanelSlot, CropRect } from './geometry/types';
-import { DEFAULT_PARAMS } from './geometry/constants';
+import type { Params, PanelSlot, CropRect, ImageAdjust } from './geometry/types';
+import { DEFAULT_PARAMS, NEUTRAL_ADJUST } from './geometry/constants';
 import { fileToImageData, fileToThumbnailUrl } from './image/loadImage';
 
 export interface SlotData {
@@ -12,6 +12,8 @@ export interface SlotData {
   imageData: ImageData;
   /** User-defined crop in normalized [0,1] image coordinates. */
   crop?: CropRect;
+  /** This photo's own image adjustments; starts neutral. */
+  adjust: ImageAdjust;
 }
 
 interface State {
@@ -23,6 +25,9 @@ interface State {
   setImage: (slot: PanelSlot, file: File) => Promise<void>;
   removeImage: (slot: PanelSlot) => void;
   setCrop: (slot: PanelSlot, crop: CropRect | undefined) => void;
+  setAdjust: (slot: PanelSlot, adjust: ImageAdjust) => void;
+  /** Give every photo the same adjustments. */
+  setAdjustAll: (adjust: ImageAdjust) => void;
 }
 
 export const useStore = create<State>((set, get) => ({
@@ -36,7 +41,7 @@ export const useStore = create<State>((set, get) => ({
       fileToThumbnailUrl(file),
       fileToImageData(file, get().params.previewResolution),
     ]);
-    set({ slots: { ...get().slots, [slot]: { file, thumbnailUrl, imageData } } });
+    set({ slots: { ...get().slots, [slot]: { file, thumbnailUrl, imageData, adjust: NEUTRAL_ADJUST } } });
   },
   removeImage: (slot) => {
     const next = { ...get().slots };
@@ -47,5 +52,17 @@ export const useStore = create<State>((set, get) => ({
     const existing = get().slots[slot];
     if (!existing) return;
     set({ slots: { ...get().slots, [slot]: { ...existing, crop } } });
+  },
+  setAdjust: (slot, adjust) => {
+    const existing = get().slots[slot];
+    if (!existing) return;
+    set({ slots: { ...get().slots, [slot]: { ...existing, adjust } } });
+  },
+  setAdjustAll: (adjust) => {
+    const slots = { ...get().slots };
+    for (const slot of Object.keys(slots) as PanelSlot[]) {
+      slots[slot] = { ...slots[slot]!, adjust };
+    }
+    set({ slots });
   },
 }));

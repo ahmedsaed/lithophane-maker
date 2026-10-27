@@ -22,13 +22,7 @@ function Parts() {
     (Object.keys(slots) as PanelSlot[]).forEach((slot) => {
       const d = slots[slot];
       if (d) {
-        let hm = imageDataToHeightMap(d.imageData, {
-          invert: params.invert,
-          brightness: params.lithoBrightness,
-          contrast: params.lithoContrast,
-          autoContrast: params.lithoAutoContrast,
-          sharpen: params.lithoSharpen,
-        });
+        let hm = imageDataToHeightMap(d.imageData, d.adjust);
         if (d.crop) hm = cropHeightMap(hm, d.crop);
         heightMaps[slot] = hm;
       }

@@ -42,8 +42,6 @@ export interface Params {
   grooveClearance: number;
   /** Width of the flat border that rides in the groove. */
   tongueWidth: number;
-  /** Invert brightness->thickness mapping. */
-  invert: boolean;
   /** Relief direction. */
   relief: ReliefDirection;
   /** Longest-side sample count for preview meshes. */
@@ -63,14 +61,6 @@ export interface Params {
   /** Cable/USB holes in the solid bottom. */
   cableHoles: CableHole[];
 
-  // --- Lithophane image-quality controls ---
-
-  /** Brightness offset applied to luma before thickness mapping [-0.5, 0.5]. */
-  lithoBrightness: number;
-  /** Contrast multiplier applied to luma before thickness mapping [0.5, 2.0]. */
-  lithoContrast: number;
-  /** Stretch the brightness histogram to fill [0, 1] before other adjustments. */
-  lithoAutoContrast: boolean;
   /**
    * Gamma exponent applied to brightness before the linear thickness mapping.
    * Compensates for light fading exponentially through the plastic
@@ -78,8 +68,23 @@ export interface Params {
    * 0.45 ≈ inverse of sRGB gamma; 1.0 = linear.
    */
   lithoGamma: number;
+}
+
+/**
+ * Adjustments for one photo, set per face in the Edit dialog. Field names match
+ * imageDataToHeightMap's options, so a slot's settings pass straight through.
+ */
+export interface ImageAdjust {
+  /** Brightness offset applied to luma before thickness mapping [-0.5, 0.5]. */
+  brightness: number;
+  /** Contrast multiplier applied to luma before thickness mapping [0.5, 2.0]. */
+  contrast: number;
+  /** Stretch the brightness histogram to fill [0, 1] before other adjustments. */
+  autoContrast: boolean;
   /** Unsharp mask amount [0, 2]. 0 = off. */
-  lithoSharpen: number;
+  sharpen: number;
+  /** Invert brightness->thickness mapping (for photo negatives). */
+  invert: boolean;
 }
 
 /** A normalized crop rectangle in image space, each value in [0, 1]. */

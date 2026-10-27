@@ -37,19 +37,11 @@ export default function ExportPanel() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
 
-  const imageProcessingOpts = {
-    invert: params.invert,
-    brightness: params.lithoBrightness,
-    contrast: params.lithoContrast,
-    autoContrast: params.lithoAutoContrast,
-    sharpen: params.lithoSharpen,
-  };
-
   async function buildSlotHeightMap(slot: PanelSlot): Promise<HeightMap | null> {
     const d = slots[slot];
     if (!d) return null;
     const img = await fileToImageData(d.file, EXPORT_IMAGE_MAX_SIDE);
-    let hm = imageDataToHeightMap(img, imageProcessingOpts);
+    let hm = imageDataToHeightMap(img, d.adjust);
     if (d.crop) hm = cropHeightMap(hm, d.crop);
     return hm;
   }

@@ -29,8 +29,9 @@ hold them together. Put a light inside and all five pictures light up.
 **Your images**
 - Five panels: front, back, left, right and top. Empty slots become plain
   panels that glow evenly, so you can mix photos with plain sides.
-- Crop each image to the square window it fills.
-- Image controls: brightness, contrast, auto-contrast, sharpening and invert.
+- **Edit** each photo on its own: crop it to the square window it fills, and
+  adjust brightness, contrast, auto-contrast, sharpening and invert, with a
+  live preview. Apply one photo's settings to all of them in one click.
 
 **The cube**
 - Any size from 40 to 200 mm, with an adjustable frame width.
@@ -55,7 +56,7 @@ hold them together. Put a light inside and all five pictures light up.
 
 ## How to use it
 
-1. **Add images** to the five slots and crop them.
+1. **Add images** to the five slots, and **Edit** each one to crop and adjust it.
 2. **Adjust** the cube size, lid type and image settings while watching the preview.
 3. **Print the test pieces** (Export → Test kit / Clearance sweep) and set
    your clearances. The [guide](https://lithophane-maker.merope.dev/guide/)
@@ -119,7 +120,7 @@ npm run coupons   # write the test-piece STLs for the default settings to ./coup
 app/
   page.tsx              the maker
   guide/page.tsx        the printing guide (/guide)
-components/             sidebar (uploads, crop, parameters, export) and 3D viewer
+components/             sidebar (uploads, parameters, export), image Edit dialog, 3D viewer
 lib/
   image/                image → grayscale height map
   geometry/
