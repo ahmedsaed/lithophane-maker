@@ -41,16 +41,19 @@ function reliefSign(params: Params): 1 | -1 {
 }
 
 /**
- * Turn a plate built with its relief on −Z (inward relief) over, so every
- * exported panel prints flat side down with the relief facing up. A rigid
- * rotation, so the panel itself — and its mirrored image — is unchanged.
+ * Stand a plate built in local XY (image up = +Y) on its bottom edge, centred
+ * on the bed at Z = 0. Lithophanes print best upright: thickness then comes
+ * from the nozzle's XY moves instead of whole layers, so shading is smooth
+ * rather than stepped, and the panel is built from walls with no infill grid.
+ * A rigid rotation, so the panel itself (and its mirrored image) is unchanged.
  */
-function reliefUp(geom: BufferGeometry, params: Params): BufferGeometry {
-  if (reliefSign(params) < 0) {
-    geom.rotateX(Math.PI);
-    geom.computeVertexNormals();
-    geom.computeBoundingBox();
-  }
+export function standUpright(geom: BufferGeometry): BufferGeometry {
+  geom.rotateX(Math.PI / 2); // local +Y (image up) → +Z
+  geom.computeBoundingBox();
+  const b = geom.boundingBox!;
+  geom.translate(-(b.min.x + b.max.x) / 2, -(b.min.y + b.max.y) / 2, -b.min.z);
+  geom.computeVertexNormals();
+  geom.computeBoundingBox();
   return geom;
 }
 
@@ -162,14 +165,14 @@ export function buildSidePartLocal(
   return buildSidePlate(hm, params, L, resolution);
 }
 
-/** Top panel in its own flat (print) orientation — already in the XY plane. */
-export function buildTopPanelFlat(
+/** Top panel in print orientation: standing on an edge. */
+export function buildTopPanelForPrint(
   hm: HeightMap,
   params: Params,
   resolution: number,
 ): BufferGeometry {
   const L = cubeLayout(params);
-  return reliefUp(buildTopPlate(hm, params, L, resolution), params);
+  return standUpright(buildTopPlate(hm, params, L, resolution));
 }
 
 /** Build a side panel already transformed into assembled cube coordinates. */
@@ -207,14 +210,14 @@ export function buildTopPanelInPlace(
   return geom;
 }
 
-/** Build a part in its own flat (print) orientation for STL export. */
-export function buildPanelFlat(
+/** Side panel in print orientation: standing on its bottom edge, image upright. */
+export function buildPanelForPrint(
   slot: PanelSlot,
   hm: HeightMap,
   params: Params,
   resolution: number,
 ): BufferGeometry {
-  return reliefUp(buildSidePartLocal(hm, params, resolution), params);
+  return standUpright(buildSidePartLocal(hm, params, resolution));
 }
 
 /** Build every available part in assembled position. */

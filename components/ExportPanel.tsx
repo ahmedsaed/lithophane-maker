@@ -11,7 +11,7 @@ import { GUIDE_URL } from '@/components/GitHubLink';
 import { geometryToStlBlob } from '@/lib/export/exportStl';
 import { buildFrame } from '@/lib/geometry/frame';
 import { buildLidForPrint } from '@/lib/geometry/lidFrame';
-import { BLANK_HEIGHTMAP, buildPanelFlat, buildTopPanelFlat, panelFileName } from '@/lib/geometry/assembly';
+import { BLANK_HEIGHTMAP, buildPanelForPrint, buildTopPanelForPrint, panelFileName } from '@/lib/geometry/assembly';
 import type { HeightMap, PanelSlot } from '@/lib/geometry/types';
 
 const SLOT_LABELS: Record<PanelSlot, string> = {
@@ -86,8 +86,8 @@ export default function ExportPanel() {
       const photo = await buildSlotHeightMap(slot);
       const hm = photo ?? BLANK_HEIGHTMAP;
       const geom = slot === 'top'
-        ? buildTopPanelFlat(hm, params, params.exportResolution)
-        : buildPanelFlat(slot, hm, params, params.exportResolution);
+        ? buildTopPanelForPrint(hm, params, params.exportResolution)
+        : buildPanelForPrint(slot, hm, params, params.exportResolution);
       const filename = panelFileName(slot, !photo);
       saveAs(geometryToStlBlob(geom), filename);
       setStatus(`Downloaded ${filename}`);

@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { buildFrame } from './frame';
-import { BLANK_HEIGHTMAP, buildAllParts, buildPanelFlat, fillBlankPanels, panelFileName } from './assembly';
+import {
+  BLANK_HEIGHTMAP, buildAllParts, buildPanelForPrint, buildSidePartLocal, buildTopPanelForPrint,
+  fillBlankPanels, panelFileName,
+} from './assembly';
 import { brightnessToThickness } from '../image/toHeightmap';
 import { cubeLayout } from './layout';
 import { DEFAULT_PARAMS } from './constants';
@@ -28,7 +31,7 @@ describe('CSG / merged parts build without throwing', () => {
   });
 
   it('side part (plate + rail) merges', () => {
-    expect(vertexCount(buildPanelFlat('front', hm, DEFAULT_PARAMS, 60))).toBeGreaterThan(0);
+    expect(vertexCount(buildPanelForPrint('front', hm, DEFAULT_PARAMS, 60))).toBeGreaterThan(0);
   });
 
   it('buildAllParts returns frame, lid plus provided panels', () => {
@@ -62,8 +65,9 @@ describe('blank panels', () => {
     const p = DEFAULT_PARAMS;
     const L = cubeLayout(p);
     const expected = brightnessToThickness(0.5, p.lithoMin, p.lithoMax, p.lithoGamma);
-    const pos = buildPanelFlat('front', BLANK_HEIGHTMAP, p, 60).getAttribute('position');
-    // Flat back at −t/2; the image window's front face sits `expected` above it.
+    const pos = buildSidePartLocal(BLANK_HEIGHTMAP, p, 60).getAttribute('position');
+    // In local panel coordinates the flat back is at −t/2; the image window's
+    // front face sits `expected` above it.
     const zs = new Set<string>();
     const winZ = -L.sidePanelCenterZ;
     for (let i = 0; i < pos.count; i++) {
@@ -81,19 +85,46 @@ describe('blank panels', () => {
 });
 
 describe('print orientation', () => {
-  // The flat back is one plane at the full plate thickness; the relief is the
-  // rest. Printing flat-side down means that plane must be the panel's bottom.
+  // Image dark at the top (thick) and bright at the bottom (thin), so we can
+  // tell which way up it was printed.
+  // Square, because images are cropped to the square window.
+  const topDark: HeightMap = { width: 2, height: 2, data: Float32Array.from([0, 0, 1, 1]) };
+
   for (const relief of ['outward', 'inward'] as const) {
-    it(`${relief} relief exports with the flat back down`, () => {
-      const g = buildPanelFlat('front', hm, { ...DEFAULT_PARAMS, relief }, 40);
+    it(`${relief}-relief side panels stand on their bottom edge, image upright`, () => {
+      const p = { ...DEFAULT_PARAMS, relief };
+      const L = cubeLayout(p);
+      const g = buildPanelForPrint('front', topDark, p, 40);
       g.computeBoundingBox();
-      const minZ = g.boundingBox!.min.z;
-      const pos = g.getAttribute('position');
-      let atMin = 0;
-      for (let i = 0; i < pos.count; i++) if (Math.abs(pos.getZ(i) - minZ) < 1e-4) atMin++;
-      // The whole back grid sits on the bed: half of all vertices.
-      expect(atMin).toBe(pos.count / 2);
+      const b = g.boundingBox!;
+      expect(b.min.z).toBeCloseTo(0, 6);
+      expect(b.max.z - b.min.z).toBeCloseTo(L.sidePanelH, 3); // standing: height is Z
+      expect(b.max.y - b.min.y).toBeCloseTo(L.t, 3);          // thin along Y
+
+      // Thickness (Y span) just inside the top vs bottom of the image window.
+      const winMid = L.sidePanelH / 2 - L.sidePanelCenterZ; // window centre, height above the bed
+      const span = (z0: number) => {
+        const pos = g.getAttribute('position');
+        let lo = Infinity, hi = -Infinity;
+        for (let i = 0; i < pos.count; i++) {
+          if (Math.abs(pos.getZ(i) - z0) < 2 && Math.abs(pos.getX(i)) < L.windowHalf - 2) {
+            lo = Math.min(lo, pos.getY(i));
+            hi = Math.max(hi, pos.getY(i));
+          }
+        }
+        return hi - lo;
+      };
+      expect(span(winMid + L.windowHalf - 3)).toBeGreaterThan(span(winMid - L.windowHalf + 3) + 0.5);
     });
   }
-});
 
+  it('the top panel stands on an edge', () => {
+    const L = cubeLayout(DEFAULT_PARAMS);
+    const g = buildTopPanelForPrint(hm, DEFAULT_PARAMS, 40);
+    g.computeBoundingBox();
+    const b = g.boundingBox!;
+    expect(b.min.z).toBeCloseTo(0, 6);
+    expect(b.max.z - b.min.z).toBeCloseTo(L.topPanelD, 3);
+    expect(b.max.y - b.min.y).toBeCloseTo(L.t, 3);
+  });
+});

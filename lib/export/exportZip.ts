@@ -3,7 +3,7 @@ import { saveAs } from 'file-saver';
 import type { HeightMap, Params, PanelSlot } from '../geometry/types';
 import { buildFrame } from '../geometry/frame';
 import { buildLidForPrint } from '../geometry/lidFrame';
-import { buildPanelFlat, buildTopPanelFlat, fillBlankPanels, panelFileName } from '../geometry/assembly';
+import { buildPanelForPrint, buildTopPanelForPrint, fillBlankPanels, panelFileName } from '../geometry/assembly';
 import { geometryToStlBlob } from './exportStl';
 import type { Coupon } from '../geometry/coupons';
 
@@ -18,8 +18,10 @@ Files:
                   top edges, so every face is framed on all four sides.
                   Already face-down: print as-is, no supports.
   side-*.stl      The four side panels (lithophane plates with a flat border
-                  that rides in the grooves). Print flat on the bed.
-  top.stl         The top panel. Corners are notched to clear the posts.
+                  that rides in the grooves). Exported standing on their
+                  bottom edge: print them that way, with a 5 mm brim.
+  top.stl         The top panel, also standing. Corners are notched to clear
+                  the posts.
   *-blank.stl     Plain panels for slots without a photo: one even thickness
                   that glows about as brightly as an average photo. Swap in a
                   photo panel later, or keep them for a plain side.
@@ -34,7 +36,8 @@ Assembly:
      first, checking each pair attracts before the glue sets.
 
 Tips:
-  - Lithophanes: plain white PLA, 0.08-0.12 mm layers, 100% infill.
+  - Lithophanes: plain white PLA, standing up as exported, 0.1-0.12 mm
+    layers, 100% infill, 5 mm brim.
   - Print the test kit and clearance sweep first to dial in the fits.
   - Full printing guide: the "printing guide" link under the title in the
     Lithophane Cube Maker.
@@ -61,8 +64,8 @@ export async function exportPartsZip(
     const hm = all[slot];
     onProgress?.(`Building ${slot} panel…`);
     const geom = slot === 'top'
-      ? buildTopPanelFlat(hm, params, res)
-      : buildPanelFlat(slot, hm, params, res);
+      ? buildTopPanelForPrint(hm, params, res)
+      : buildPanelForPrint(slot, hm, params, res);
     zip.file(panelFileName(slot, blankSlots.includes(slot)), geometryToStlBlob(geom));
   }
 
@@ -87,8 +90,9 @@ TEST KIT (current settings)
 
   groove-post.stl + panel-strip.stl
       The bottom of a corner post and the bottom corner of a side panel.
-      Stand the strip on its short edge and slide its long flat edge down
-      into either groove until it seats in the bottom groove.
+      Print the strip standing, as exported, like a real panel. Hold it
+      bottom edge down and slide its side edge into either groove until the
+      bottom edge seats in the bottom groove.
       Good:      slides in by hand with light friction, stands upright, little wobble.
       Too tight: needs force or won't go in -> raise "Groove clearance".
       Too loose: falls in and rattles     -> lower "Groove clearance".
@@ -107,8 +111,8 @@ TEST KIT (current settings)
 
   litho-steps.stl
       A 10-step brightness wedge (black -> white) using your min/max thickness
-      and gamma. Print it flat at your lithophane layer height and hold it in
-      front of the light source you'll use in the cube.
+      and gamma. Print it standing, as exported, with your lithophane settings
+      and hold it in front of the light source you'll use in the cube.
       Good: all 10 steps look different. If the dark end merges into one
             block, lower "Max thickness"; if the bright end merges, raise
             "Min thickness" or adjust gamma.

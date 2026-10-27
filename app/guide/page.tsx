@@ -104,12 +104,13 @@ export default function GuidePage() {
             <Setting>Calibration → Flow rate</Setting>. Other slicers have an equivalent test.
           </li>
           <li>
-            <strong>First layer.</strong> The panels’ flat backs and the frame’s floor print
-            on the bed. You want a clean first layer that isn’t squashed into a lip.
+            <strong>First layer.</strong> The frame’s floor and the panels’ bottom edges
+            print on the bed. You want a clean first layer that isn’t squashed into a lip.
           </li>
           <li>
-            <strong>Elephant foot.</strong> If the bottom layer bulges outward, the panels
-            won’t drop all the way into the bottom groove. Turn on your slicer’s elephant
+            <strong>Elephant foot.</strong> The panels print standing on the edge that goes
+            into the bottom groove, so if the first layers bulge outward, that edge won’t
+            drop all the way in. Turn on your slicer’s elephant
             foot compensation (Orca:{' '}
             <Setting>Quality → Precision → Elephant foot compensation</Setting>, around
             0.1–0.15 mm).
@@ -134,12 +135,13 @@ export default function GuidePage() {
           head={['Pieces', 'Layer height', 'Walls', 'Infill']}
           rows={[
             ['Groove posts, post top, lid corners (frame-like)', 'Your normal frame setting, e.g. 0.2 mm', '3', '15–20 %'],
-            ['Panel strip (panel-like)', <a key="l" href="#litho-settings">Your lithophane setting</a>, '', '100 %'],
+            ['Panel strip and brightness strip (panel-like)', <a key="l" href="#litho-settings">Lithophane settings</a>, 'See step 3', '100 %, with a brim'],
           ]}
         />
         <p>
-          Print the panel strip the same way you’ll print real panels. The grooves need to
-          fit a real panel, not a frame-quality one.
+          Print the panel strip the same way you’ll print real panels: standing up, as
+          exported, with the lithophane settings. The grooves need to fit a real panel,
+          not a frame-quality one.
         </p>
 
         <h3>Panel fit (Groove clearance)</h3>
@@ -150,9 +152,9 @@ export default function GuidePage() {
           rows={[['Groove clearance', '0.15 mm', '0.20 mm', '0.25 mm', '0.30 mm', '0.35 mm']]}
         />
         <p>
-          <strong>Test:</strong> stand the strip on its short edge and slide its long flat
-          edge down into each post’s grooves until it seats in the bottom groove. Try both
-          grooves on each post.
+          <strong>Test:</strong> hold the strip the way it printed, bottom edge down, and
+          slide its side edge down into each post’s groove until the bottom edge seats in
+          the bottom groove. Try both grooves on each post.
         </p>
         <Verdicts
           good="it slides in by hand with light friction, stands upright on its own and barely wobbles."
@@ -210,19 +212,39 @@ export default function GuidePage() {
         </p>
 
         <h3 id="litho-settings">Lithophane slicer settings</h3>
-        <p>Use these for every panel and for the brightness strip:</p>
+        <p>
+          <strong>Panels print standing up.</strong> The maker exports every panel standing
+          on its bottom edge, and that’s how to print them:
+        </p>
+        <ul>
+          <li>
+            <strong>Smooth shading.</strong> Lying flat, thickness can only change in whole
+            layers: at 0.1 mm layers that’s about 20 brightness levels, which shows up as
+            rings in gradients. Standing up, thickness comes from the nozzle’s much finer
+            sideways moves.
+          </li>
+          <li>
+            <strong>No grid.</strong> A flat panel is mostly infill, and its pattern shows
+            through when lit. A standing panel is built from walls.
+          </li>
+        </ul>
+        <p>The cost is a slower print and a tall, thin part that needs a brim. Use these settings for every panel and for the test strips:</p>
         <Table
           head={['Setting', 'Value', 'Why']}
           rows={[
+            ['Orientation', <strong key="o">Standing, as exported</strong>, 'Smooth shading, no infill grid'],
             ['Filament', 'Plain white PLA', 'Colours and silk finishes tint or scatter the light'],
-            ['Layer height', '0.08–0.12 mm', 'Thinner layers give smoother shading'],
-            ['Infill', <strong key="i">100 %</strong>, 'Any infill pattern shows through as a grid when lit'],
-            ['Outer wall speed', 'Slow, e.g. ≤ 50 mm/s', 'Ringing and wobble show up when backlit'],
-            ['Ironing', 'Off', 'Flattens the relief'],
-            ['Orientation', 'As exported: flat back down, relief up', 'The maker already does this'],
-            ['Supports / brim', 'None', ''],
+            ['Layer height', '0.1–0.12 mm', 'Sets the vertical detail; the shading itself comes from sideways moves'],
+            ['Infill', <strong key="i">100 %</strong>, 'Gaps inside the plate show up as lines when lit'],
+            ['Brim', <strong key="b">5 mm</strong>, 'Keeps a tall, thin plate from tipping or wobbling'],
+            ['Speed', 'Outer walls ≤ 40 mm/s', 'Wobble near the top shows up as streaks when backlit'],
+            ['Supports', 'None', ''],
           ]}
         />
+        <p>
+          Print panels spaced apart rather than packed tightly, so the nozzle doesn’t knock
+          a neighbour while it’s still thin. Peel the brim off before assembly.
+        </p>
 
         <h3>Brightness test</h3>
         <p><strong>Print:</strong> <code>litho-steps</code> from the <strong>Test kit</strong> with the settings above.</p>
@@ -262,7 +284,7 @@ export default function GuidePage() {
           rows={[
             [<code key="f">frame.stl</code>, 'Frame: 0.2 mm, 3 walls, 15–20 %', 'Floor down, as exported'],
             [<code key="l">lid.stl</code>, 'Frame', 'Exported face-down, with the pegs or magnet holes pointing up'],
-            [<><code>side-*.stl</code>, <code>top.stl</code></>, <a key="s" href="#litho-settings">Lithophane</a>, 'Flat back down, relief up'],
+            [<><code>side-*.stl</code>, <code>top.stl</code></>, <a key="s" href="#litho-settings">Lithophane</a>, 'Standing on the bottom edge, as exported, with a 5 mm brim'],
           ]}
         />
 
@@ -284,7 +306,9 @@ export default function GuidePage() {
             ['Panels fit the test piece but not the real frame', 'Different layer height or profile than the test', 'Print the test pieces with the same profiles as the real parts'],
             ['Lid falls off', 'Peg clearance too high', <>Lower <Setting>Peg clearance</Setting> or raise <Setting>Peg depth</Setting></>],
             ['Lid pegs snapped', 'Peg clearance too low', <>Raise <Setting>Peg clearance</Setting></>],
-            ['Grid pattern visible in the image', 'Infill below 100 %', 'Set infill to 100 %'],
+            ['Rings or steps in smooth gradients', 'Panel printed lying flat', 'Print it standing up, as exported'],
+            ['Grid pattern visible in the image', 'Panel printed flat, or infill below 100 %', 'Print standing up with 100 % infill'],
+            ['Panel wobbled or tipped over while printing', 'Tall, thin part with too little bed grip', 'Use a 5 mm (or wider) brim, slow down, and space panels apart'],
             ['Bright spot in the middle of each panel', 'Small bare light source', 'Use a diffuse bulb or puck light'],
             ['Image looks flat or muddy', 'Thickness range too narrow', <>Re-run the brightness test (<a key="b" href="#lithophane">step 3</a>)</>],
           ]}

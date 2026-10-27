@@ -3,7 +3,7 @@ import type { Params } from './types';
 import { cubeLayout } from './layout';
 import { buildFrame } from './frame';
 import { buildLidFrame } from './lidFrame';
-import { BLANK_HEIGHTMAP, buildSidePartLocal } from './assembly';
+import { BLANK_HEIGHTMAP, buildSidePartLocal, standUpright } from './assembly';
 import { buildLithophanePanel } from './lithophanePanel';
 import {
   geometryToManifold,
@@ -92,13 +92,16 @@ export function buildGrooveCoupon(params: Params, dots = 0): BufferGeometry {
   return toBed(g);
 }
 
-/** Bottom corner of a side panel (tongue plus a strip of plate) to slide into the groove coupon. */
+/**
+ * Bottom corner of a side panel (tongue plus a strip of plate) to slide into the
+ * groove coupon. Printed upright like the real panels, so it tests the same fit.
+ */
 export function buildPanelStripCoupon(params: Params): BufferGeometry {
   const L = cubeLayout(params);
   const panel = buildSidePartLocal(BLANK_HEIGHTMAP, params, 60);
   const W = L.sidePanelW;
   const H = L.sidePanelH;
-  return toBed(crop(panel, [-W / 2 - 1, -H / 2 - 1, -L.t - 1], [-W / 2 + L.engage + 6, -H / 2 + STRIP_H, L.t + 1]));
+  return standUpright(crop(panel, [-W / 2 - 1, -H / 2 - 1, -L.t - 1], [-W / 2 + L.engage + 6, -H / 2 + STRIP_H, L.t + 1]));
 }
 
 /** Top of the front-left corner post with its peg or magnet hole, for the lid corner coupon. */
@@ -132,6 +135,7 @@ export function buildLidCornerCoupon(params: Params, dots = 0): BufferGeometry {
 /**
  * Ten-step brightness wedge (black → white) with the current thickness and
  * gamma settings. Backlight it to judge how each brightness level will look.
+ * Printed upright like the real panels, since orientation changes the shading.
  */
 export function buildLithoStepsCoupon(params: Params): BufferGeometry {
   const steps = 10;
@@ -151,7 +155,7 @@ export function buildLithoStepsCoupon(params: Params): BufferGeometry {
     cellsY: Math.round(height / 0.5),
     gamma: params.lithoGamma,
   });
-  return toBed(g);
+  return standUpright(g);
 }
 
 /** One of everything at the current settings: groove fit, lid fit, lithophane wedge. */
