@@ -7,6 +7,7 @@ import { buildPanelForPrint, buildTopPanelForPrint, fillBlankPanels, panelFileNa
 import { geometryToStlBlob } from './exportStl';
 import type { Coupon } from '../geometry/coupons';
 import { MAX_PANEL_CELLS } from '../geometry/layout';
+import { settingsJson, settingsText, type PhotoRecords } from './settings';
 
 const README = `Lithophane Cube — printable parts
 
@@ -51,6 +52,7 @@ Tips:
 export async function exportPartsZip(
   heightMaps: Partial<Record<PanelSlot, HeightMap>>,
   params: Params,
+  photos: PhotoRecords,
   onProgress?: (msg: string) => void,
 ): Promise<void> {
   const zip = new JSZip();
@@ -73,7 +75,8 @@ export async function exportPartsZip(
     zip.file(panelFileName(slot, blankSlots.includes(slot)), geometryToStlBlob(geom));
   }
 
-  zip.file('README.txt', README);
+  zip.file('README.txt', `${README}\n${settingsText(params, photos)}`);
+  zip.file('settings.json', settingsJson(params, photos));
 
   onProgress?.('Zipping…');
   const blob = await zip.generateAsync({ type: 'blob' });
@@ -136,9 +139,11 @@ CLEARANCE SWEEP
 `;
 
 /** Bundle a set of test coupons with instructions into one zip download. */
-export async function exportCouponsZip(coupons: Coupon[], filename: string): Promise<void> {
+export async function exportCouponsZip(coupons: Coupon[], filename: string, params: Params): Promise<void> {
   const zip = new JSZip();
   for (const c of coupons) zip.file(`${c.name}.stl`, geometryToStlBlob(c.geometry));
-  zip.file('README.txt', COUPON_README);
+  // The settings the test pieces were cut at, so results can be matched to them.
+  zip.file('README.txt', `${COUPON_README}\n${settingsText(params)}`);
+  zip.file('settings.json', settingsJson(params));
   saveAs(await zip.generateAsync({ type: 'blob' }), filename);
 }

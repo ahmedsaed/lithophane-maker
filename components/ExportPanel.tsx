@@ -6,6 +6,7 @@ import { useStore } from '@/lib/store';
 import { fileToImageData } from '@/lib/image/loadImage';
 import { imageDataToHeightMap, cropHeightMap } from '@/lib/image/toHeightmap';
 import { exportCouponsZip, exportPartsZip } from '@/lib/export/exportZip';
+import type { PhotoRecords } from '@/lib/export/settings';
 import { buildClearanceSweep, buildTestKit } from '@/lib/geometry/coupons';
 import { GUIDE_URL } from '@/components/GitHubLink';
 import { MAX_PANEL_CELLS } from '@/lib/geometry/layout';
@@ -109,7 +110,12 @@ export default function ExportPanel() {
           heightMaps[slot] = hm;
         }
       }
-      await exportPartsZip(heightMaps, params, setStatus);
+      const photos: PhotoRecords = {};
+      for (const slot of SLOT_ORDER) {
+        const d = slots[slot];
+        if (d) photos[slot] = { file: d.file.name, crop: d.crop, adjust: d.adjust };
+      }
+      await exportPartsZip(heightMaps, params, photos, setStatus);
       setStatus('Downloaded lithophane-cube.zip');
     } catch (err) {
       console.error(err);
@@ -125,7 +131,7 @@ export default function ExportPanel() {
     try {
       const filename = kind === 'kit' ? 'lithophane-test-kit.zip' : 'lithophane-clearance-sweep.zip';
       const coupons = kind === 'kit' ? buildTestKit(params) : buildClearanceSweep(params);
-      await exportCouponsZip(coupons, filename);
+      await exportCouponsZip(coupons, filename, params);
       setStatus(`Downloaded ${filename}`);
     } catch (err) {
       console.error(err);

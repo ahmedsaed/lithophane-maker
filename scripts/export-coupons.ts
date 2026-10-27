@@ -11,6 +11,7 @@ import { DEFAULT_PARAMS } from '../lib/geometry/constants';
 import { buildClearanceSweep, buildLidCornerCoupon, buildPostTopCoupon, buildTestKit } from '../lib/geometry/coupons';
 import { geometryToStlBlob } from '../lib/export/exportStl';
 import { COUPON_README } from '../lib/export/exportZip';
+import { settingsJson, settingsText } from '../lib/export/settings';
 
 async function main() {
   const outDir = process.argv[2] ?? 'coupons';
@@ -32,7 +33,8 @@ async function main() {
       console.log(join(dir, `${c.name}.stl`));
     }
   }
-  writeFileSync(join(outDir, 'README.txt'), COUPON_README);
+  writeFileSync(join(outDir, 'README.txt'), `${COUPON_README}\n${settingsText(DEFAULT_PARAMS)}`);
+  writeFileSync(join(outDir, 'settings.json'), settingsJson(DEFAULT_PARAMS));
 }
 
 main();
