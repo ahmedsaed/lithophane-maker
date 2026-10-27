@@ -41,6 +41,10 @@ export const viewport: Viewport = {
   colorScheme: 'dark',
 };
 
+// Cookieless page-view counts from our own Umami (stats.merope.dev). Inlined at
+// build time; only the production build sets it, so local builds count nothing.
+const UMAMI_WEBSITE_ID = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
+
 export default function RootLayout({
   children,
 }: {
@@ -48,7 +52,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        {UMAMI_WEBSITE_ID && (
+          <script
+            defer
+            src="https://stats.merope.dev/p.js"
+            data-website-id={UMAMI_WEBSITE_ID}
+            data-do-not-track="true"
+          />
+        )}
+      </body>
     </html>
   );
 }
