@@ -6,22 +6,25 @@ import { buildLidForPrint } from '../geometry/lidFrame';
 import { buildPanelForPrint, buildTopPanelForPrint, fillBlankPanels, panelFileName } from '../geometry/assembly';
 import { geometryToStlBlob } from './exportStl';
 import type { Coupon } from '../geometry/coupons';
+import { MAX_PANEL_CELLS } from '../geometry/layout';
+import { settingsJson, settingsText, type PhotoRecords } from './settings';
 
 const README = `Lithophane Cube — printable parts
 
 Files:
   frame.stl       Four corner posts and bottom rails on a solid floor, grooved
-                  to hold the side panels' side and bottom edges, a peg/magnet
-                  hole in each post top and the optional cable hole(s) in the
-                  floor. Print as-is, no supports.
-  lid.stl         The top band of the cube. Its skirts cover the side panels'
-                  top edges, so every face is framed on all four sides.
-                  Already face-down: print as-is, no supports.
+                  to hold the side panels' side and bottom edges. A small
+                  support rises from each post's inner corner for the top
+                  panel to rest on. A peg/magnet hole in each post top and the
+                  optional cable hole(s) in the floor. Print as-is, no supports.
+  lid.stl         The top band of the cube. Its skirts hold the side panels'
+                  top edges in a groove, so every face is framed on all four
+                  sides. Already face-down: print as-is, no supports.
   side-*.stl      The four side panels (lithophane plates with a flat border
                   that rides in the grooves). Exported standing on their
                   bottom edge: print them that way, with a 5 mm brim.
-  top.stl         The top panel, also standing. Corners are notched to clear
-                  the posts.
+  top.stl         The top panel: the same square as the side panels, also
+                  exported standing.
   *-blank.stl     Plain panels for slots without a photo: one even thickness
                   that glows about as brightly as an average photo. Swap in a
                   photo panel later, or keep them for a plain side.
@@ -30,10 +33,12 @@ Assembly:
   1. Slide each side panel down into the frame's corner grooves until it
      seats in the bottom groove.
   2. Put your light source inside, routing its cable through the floor hole.
-  3. Lay the top panel on the side panels, notched corners over the posts.
-  4. Press the lid down onto the posts. It traps the top panel.
-     Magnet version: glue one magnet into each post top and each lid corner
-     first, checking each pair attracts before the glue sets.
+  3. Lay the top panel on the four corner supports.
+  4. Press the lid down onto the posts. Its skirts slide over the side
+     panels' top edges and it traps the top panel.
+     Magnet version: first press one magnet into each post top and each lid
+     corner (glue any that are loose). Check every pair attracts BEFORE
+     pressing it in: a pressed-in magnet may not come out again.
 
 Tips:
   - Lithophanes: plain white PLA, standing up as exported, 0.1-0.12 mm
@@ -47,10 +52,11 @@ Tips:
 export async function exportPartsZip(
   heightMaps: Partial<Record<PanelSlot, HeightMap>>,
   params: Params,
+  photos: PhotoRecords,
   onProgress?: (msg: string) => void,
 ): Promise<void> {
   const zip = new JSZip();
-  const res = params.exportResolution;
+  const res = MAX_PANEL_CELLS;
 
   onProgress?.('Building frame…');
   zip.file('frame.stl', geometryToStlBlob(buildFrame(params)));
@@ -69,7 +75,8 @@ export async function exportPartsZip(
     zip.file(panelFileName(slot, blankSlots.includes(slot)), geometryToStlBlob(geom));
   }
 
-  zip.file('README.txt', README);
+  zip.file('README.txt', `${README}\n${settingsText(params, photos)}`);
+  zip.file('settings.json', settingsJson(params, photos));
 
   onProgress?.('Zipping…');
   const blob = await zip.generateAsync({ type: 'blob' });
@@ -107,7 +114,8 @@ TEST KIT (current settings)
         Too loose: falls out when you lift it          -> lower "Peg clearance",
                    or make "Peg depth" longer.
       Magnets: press a magnet into each hole. It should go in snugly and sit
-      flush or slightly below the surface. Glue it if it's loose.
+      flush or slightly below the surface. It may then hold by friction alone;
+      glue it if it's loose. Check polarity first, since it may not come out.
 
   litho-steps.stl
       A 10-step brightness wedge (black -> white) using your min/max thickness
@@ -131,9 +139,11 @@ CLEARANCE SWEEP
 `;
 
 /** Bundle a set of test coupons with instructions into one zip download. */
-export async function exportCouponsZip(coupons: Coupon[], filename: string): Promise<void> {
+export async function exportCouponsZip(coupons: Coupon[], filename: string, params: Params): Promise<void> {
   const zip = new JSZip();
   for (const c of coupons) zip.file(`${c.name}.stl`, geometryToStlBlob(c.geometry));
-  zip.file('README.txt', COUPON_README);
+  // The settings the test pieces were cut at, so results can be matched to them.
+  zip.file('README.txt', `${COUPON_README}\n${settingsText(params)}`);
+  zip.file('settings.json', settingsJson(params));
   saveAs(await zip.generateAsync({ type: 'blob' }), filename);
 }

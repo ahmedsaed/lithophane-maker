@@ -2,6 +2,8 @@
 
 **Turn five photos into a 3D-printable lithophane lamp.**
 
+![A lit lithophane cube lamp made with Lithophane Cube Maker](app/opengraph-image.png)
+
 **Try it: [lithophane-maker.merope.dev](https://lithophane-maker.merope.dev)**
 
 A lithophane is a thin plastic panel that shows a picture when light shines
@@ -29,19 +31,20 @@ hold them together. Put a light inside and all five pictures light up.
 **Your images**
 - Five panels: front, back, left, right and top. Empty slots become plain
   panels that glow evenly, so you can mix photos with plain sides.
-- Crop each image to the square window it fills.
-- Image controls: brightness, contrast, auto-contrast, gamma, sharpening,
-  grayscale mode and invert.
+- **Edit** each photo on its own: crop it to the square window it fills, and
+  adjust brightness, contrast, auto-contrast, sharpening and invert, with a
+  live preview. Apply one photo's settings to all of them in one click.
 
 **The cube**
-- Any size from 40 to 200 mm, with adjustable post size, panel thickness and
-  floor thickness.
-- Every face is framed evenly on all four sides, so all five pictures look the
-  same.
-- The lid attaches with **printed press-fit pegs** (no extra parts) or **glued
-  magnets**.
+- Any size from 40 to 200 mm. The frame is sized automatically to fit the
+  grooves and the pegs or magnets, as slim as it can be.
+- Every face is framed evenly on all four sides, and all five panels are the
+  same square, so all five pictures look the same.
+- The lid attaches with **printed press-fit pegs** (no extra parts) or **disc
+  magnets** pressed into the posts and lid.
 - A cable hole in the floor for the light's power lead, with adjustable size.
-- Lithophane thickness range and relief direction (outward or inward).
+- Lithophane controls for your filament: thickness range, gamma, which side
+  carries the texture, and resolution to match your nozzle.
 
 **Getting a good print**
 - A live 3D preview with an exploded view to see how the parts fit together.
@@ -56,7 +59,7 @@ hold them together. Put a light inside and all five pictures light up.
 
 ## How to use it
 
-1. **Add images** to the five slots and crop them.
+1. **Add images** to the five slots, and **Edit** each one to crop and adjust it.
 2. **Adjust** the cube size, lid type and image settings while watching the preview.
 3. **Print the test pieces** (Export → Test kit / Clearance sweep) and set
    your clearances. The [guide](https://lithophane-maker.merope.dev/guide/)
@@ -69,10 +72,10 @@ hold them together. Put a light inside and all five pictures light up.
 
 | Part | What it is |
 |------|------------|
-| `frame` | The floor, corner posts and bottom rails, grooved to hold each side panel. A peg or magnet hole in each post top and a cable hole in the floor. |
-| `side-*` ×4 | The side lithophane panels. Their borders are hidden in the grooves. |
-| `top` | The top lithophane panel, with notched corners to clear the posts. |
-| `lid` | The top band of the cube. It frames the top panel, covers the side panels' top edges and traps the top panel in place. |
+| `frame` | The floor, corner posts and bottom rails, grooved to hold each side panel, plus a small support at each post's inner corner for the top panel. A peg or magnet hole in each post top and a cable hole in the floor. |
+| `side-*` ×4 | The side lithophane panels. Their 5 mm borders are hidden in the grooves on all four edges. |
+| `top` | The top lithophane panel: the same square as the sides. It rests on the corner supports. |
+| `lid` | The top band of the cube. It frames the top panel, holds the side panels' top edges in a groove and traps the top panel in place. |
 
 ---
 
@@ -120,12 +123,12 @@ npm run coupons   # write the test-piece STLs for the default settings to ./coup
 app/
   page.tsx              the maker
   guide/page.tsx        the printing guide (/guide)
-components/             sidebar (uploads, crop, parameters, export) and 3D viewer
+components/             sidebar (uploads, parameters, export), image Edit dialog, 3D viewer
 lib/
   image/                image → grayscale height map
   geometry/
     layout.ts           shared dimensions for every part
-    frame.ts            frame: floor, posts, bottom rails, grooves
+    frame.ts            frame: floor, posts, bottom rails, grooves, corner supports
     lidFrame.ts         lid: top band, panel recess, pegs / magnet holes
     lithophanePanel.ts  lithophane panel mesh
     assembly.ts         builds every part, in place and in print orientation

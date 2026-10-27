@@ -6,8 +6,10 @@ import { useStore } from '@/lib/store';
 import { fileToImageData } from '@/lib/image/loadImage';
 import { imageDataToHeightMap, cropHeightMap } from '@/lib/image/toHeightmap';
 import { exportCouponsZip, exportPartsZip } from '@/lib/export/exportZip';
+import type { PhotoRecords } from '@/lib/export/settings';
 import { buildClearanceSweep, buildTestKit } from '@/lib/geometry/coupons';
 import { GUIDE_URL } from '@/components/GitHubLink';
+import { MAX_PANEL_CELLS } from '@/lib/geometry/layout';
 import { geometryToStlBlob } from '@/lib/export/exportStl';
 import { buildFrame } from '@/lib/geometry/frame';
 import { buildLidForPrint } from '@/lib/geometry/lidFrame';
@@ -24,26 +26,23 @@ const SLOT_LABELS: Record<PanelSlot, string> = {
 
 const SLOT_ORDER: PanelSlot[] = ['front', 'back', 'left', 'right', 'top'];
 
+/**
+ * Longest side photos are decoded at for export: twice the mesh limit, so a
+ * cropped photo still has a pixel for every sample of the panel.
+ */
+const EXPORT_IMAGE_MAX_SIDE = 2 * MAX_PANEL_CELLS;
+
 export default function ExportPanel() {
   const slots = useStore((s) => s.slots);
   const params = useStore((s) => s.params);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
 
-  const imageProcessingOpts = {
-    invert: params.invert,
-    grayscaleMode: params.grayscaleMode,
-    brightness: params.lithoBrightness,
-    contrast: params.lithoContrast,
-    autoContrast: params.lithoAutoContrast,
-    sharpen: params.lithoSharpen,
-  };
-
   async function buildSlotHeightMap(slot: PanelSlot): Promise<HeightMap | null> {
     const d = slots[slot];
     if (!d) return null;
-    const img = await fileToImageData(d.file, params.exportResolution);
-    let hm = imageDataToHeightMap(img, imageProcessingOpts);
+    const img = await fileToImageData(d.file, EXPORT_IMAGE_MAX_SIDE);
+    let hm = imageDataToHeightMap(img, d.adjust);
     if (d.crop) hm = cropHeightMap(hm, d.crop);
     return hm;
   }
@@ -86,8 +85,8 @@ export default function ExportPanel() {
       const photo = await buildSlotHeightMap(slot);
       const hm = photo ?? BLANK_HEIGHTMAP;
       const geom = slot === 'top'
-        ? buildTopPanelForPrint(hm, params, params.exportResolution)
-        : buildPanelForPrint(slot, hm, params, params.exportResolution);
+        ? buildTopPanelForPrint(hm, params, MAX_PANEL_CELLS)
+        : buildPanelForPrint(slot, hm, params, MAX_PANEL_CELLS);
       const filename = panelFileName(slot, !photo);
       saveAs(geometryToStlBlob(geom), filename);
       setStatus(`Downloaded ${filename}`);
@@ -111,7 +110,12 @@ export default function ExportPanel() {
           heightMaps[slot] = hm;
         }
       }
-      await exportPartsZip(heightMaps, params, setStatus);
+      const photos: PhotoRecords = {};
+      for (const slot of SLOT_ORDER) {
+        const d = slots[slot];
+        if (d) photos[slot] = { file: d.file.name, crop: d.crop, adjust: d.adjust };
+      }
+      await exportPartsZip(heightMaps, params, photos, setStatus);
       setStatus('Downloaded lithophane-cube.zip');
     } catch (err) {
       console.error(err);
@@ -127,7 +131,7 @@ export default function ExportPanel() {
     try {
       const filename = kind === 'kit' ? 'lithophane-test-kit.zip' : 'lithophane-clearance-sweep.zip';
       const coupons = kind === 'kit' ? buildTestKit(params) : buildClearanceSweep(params);
-      await exportCouponsZip(coupons, filename);
+      await exportCouponsZip(coupons, filename, params);
       setStatus(`Downloaded ${filename}`);
     } catch (err) {
       console.error(err);

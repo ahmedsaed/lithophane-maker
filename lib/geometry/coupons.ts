@@ -122,9 +122,9 @@ export function buildLidCornerCoupon(params: Params, dots = 0): BufferGeometry {
   const inner = L.half - L.cornerReach;
   const lid = buildLidFrame(params);
   const g = withManifoldScope(() => {
-    // Pits go in the recess ceiling over the front side panel, clear of the opening.
+    // Pits go in the recess ceiling over the top panel's front border, clear of the opening.
     const pits = Array.from({ length: dots }, (_, i) =>
-      mCylinderZ(0.6, 1.2, -inner + 1.5 + i * 1.8, -(inner + L.panelOuter) / 2, L.postTop + L.lidRecess, 16),
+      mCylinderZ(0.6, 1.2, -inner + 1.5 + i * 1.8, -(inner + L.panelEdge + L.clear) / 2, L.topPanelBase + L.lidRecess, 16),
     );
     return crop(lid, [lo, lo, L.postTop - L.postHoleDepth - 1], [hi, hi, L.half + 1], pits);
   });
@@ -146,7 +146,7 @@ export function buildLithoStepsCoupon(params: Params): BufferGeometry {
   const g = buildLithophanePanel({
     width,
     height,
-    thickness: params.panelThickness,
+    thickness: params.lithoMax,
     tongueWidth: 3,
     lithoMin: params.lithoMin,
     lithoMax: params.lithoMax,

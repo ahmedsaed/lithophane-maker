@@ -1,116 +1,18 @@
 'use client';
 
 import { useStore } from '@/lib/store';
-import type { Params, GrayscaleMode, LidAttach } from '@/lib/geometry/types';
-import { maxPanelThickness, validateParams } from '@/lib/geometry/validate';
-
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="param-group">
-      <p className="param-group-title">{title}</p>
-      {children}
-    </div>
-  );
-}
-
-function Slider({
-  label,
-  unit,
-  value,
-  min,
-  max,
-  step,
-  onChange,
-  description,
-}: {
-  label: string;
-  unit?: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (v: number) => void;
-  description?: string;
-}) {
-  const handleNumber = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = parseFloat(e.target.value);
-    if (!isNaN(v)) onChange(Math.max(min, Math.min(max, v)));
-  };
-
-  return (
-    <div className="field">
-      <div className="field-row">
-        <span className="field-label">{label}</span>
-        <div className="field-value">
-          <input
-            type="number"
-            value={value}
-            min={min}
-            max={max}
-            step={step}
-            onChange={handleNumber}
-          />
-          {unit && <span className="field-unit">{unit}</span>}
-        </div>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-      />
-      {description && <p className="field-desc">{description}</p>}
-    </div>
-  );
-}
-
-function Toggle({
-  label,
-  options,
-  value,
-  onChange,
-  description,
-}: {
-  label: string;
-  options: { label: string; value: string | boolean }[];
-  value: string | boolean;
-  onChange: (v: string | boolean) => void;
-  description?: string;
-}) {
-  return (
-    <div className="field">
-      <div className="field-row">
-        <span className="field-label">{label}</span>
-        <div className="toggle">
-          {options.map((opt) => (
-            <button
-              key={String(opt.value)}
-              className={value === opt.value ? 'active' : ''}
-              onClick={() => onChange(opt.value)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      {description && <p className="field-desc">{description}</p>}
-    </div>
-  );
-}
-
-/** Panel-thickness slider ceiling: leaves MIN_WALL around each groove, within 0.8–6 mm. */
-function clampPanelMax(postSize: number, grooveClearance: number): number {
-  return Math.min(6, Math.max(0.8, maxPanelThickness(postSize, grooveClearance)));
-}
+import type { Params, LidAttach } from '@/lib/geometry/types';
+import { GUIDE_URL } from '@/components/GitHubLink';
+import { validateParams } from '@/lib/geometry/validate';
+import { cubeLayout } from '@/lib/geometry/layout';
+import { Group, Slider, Toggle } from '@/components/Controls';
 
 export default function ParamsPanel() {
   const params = useStore((s) => s.params);
   const set = useStore((s) => s.setParams);
 
-  const panelThicknessMax = clampPanelMax(params.postSize, params.grooveClearance);
   const issues = validateParams(params);
+  const L = cubeLayout(params);
 
   return (
     <div>
@@ -123,7 +25,7 @@ export default function ParamsPanel() {
           ))}
         </ul>
       )}
-      <Group title="Frame">
+      <Group title="Cube">
         <Slider
           label="Cube size"
           unit=" mm"
@@ -133,26 +35,22 @@ export default function ParamsPanel() {
           step={1}
           onChange={(v) => set({ cubeSize: v })}
         />
+        <p className="field-desc derived-info">
+          Frame <strong>{L.cornerReach.toFixed(1)} mm</strong> wide, picture{' '}
+          <strong>{Math.max(0, 2 * L.windowHalf).toFixed(1)} mm</strong> square. The frame is
+          sized to fit the grooves and the {params.lidAttach === 'magnet' ? 'magnets' : 'pegs'}.
+        </p>
         <Slider
-          label="Post size"
+          label="Cable hole ⌀"
           unit=" mm"
-          value={params.postSize}
-          min={4}
-          max={16}
-          step={0.5}
-          onChange={(v) => {
-            const newMax = clampPanelMax(v, params.grooveClearance);
-            set({ postSize: v, panelThickness: Math.min(params.panelThickness, newMax) });
-          }}
-        />
-        <Slider
-          label="Bottom thickness"
-          unit=" mm"
-          value={params.bottomThickness}
-          min={1.5}
-          max={10}
-          step={0.5}
-          onChange={(v) => set({ bottomThickness: v })}
+          value={params.cableHoles[0]?.diameter ?? 0}
+          min={0}
+          max={40}
+          step={1}
+          onChange={(v) =>
+            set({ cableHoles: v > 0 ? [{ diameter: v, x: 0, y: 0 }] : [] })
+          }
+          description="In the floor, for the light's power lead. 0 for none."
         />
       </Group>
 
@@ -168,32 +66,20 @@ export default function ParamsPanel() {
           description={
             params.lidAttach === 'pressfit'
               ? 'Fully printed: pegs under the lid press into holes in the posts.'
-              : 'Glue a disc magnet into each post top and each lid corner (8 total). Check the polarity before the glue sets.'
+              : 'Press a disc magnet into each post top and each lid corner (8 total); glue any that are loose. Check the polarity first: a pressed-in magnet may not come out again.'
           }
         />
         {params.lidAttach === 'pressfit' ? (
-          <>
-            <Slider
-              label="Peg depth"
-              unit=" mm"
-              value={params.pegDepth}
-              min={3}
-              max={15}
-              step={0.5}
-              onChange={(v) => set({ pegDepth: v })}
-              description="Longer pegs grip harder."
-            />
-            <Slider
-              label="Peg clearance"
-              unit=" mm"
-              value={params.pegClearance}
-              min={0}
-              max={0.3}
-              step={0.05}
-              onChange={(v) => set({ pegClearance: v })}
-              description="Gap around each peg. Lower = tighter. Use the clearance sweep test print to find yours."
-            />
-          </>
+          <Slider
+            label="Peg depth"
+            unit=" mm"
+            value={params.pegDepth}
+            min={3}
+            max={15}
+            step={0.5}
+            onChange={(v) => set({ pegDepth: v })}
+            description="Longer pegs grip harder."
+          />
         ) : (
           <>
             <Slider
@@ -218,16 +104,11 @@ export default function ParamsPanel() {
         )}
       </Group>
 
-      <Group title="Panel">
-        <Slider
-          label="Panel thickness"
-          unit=" mm"
-          value={Math.min(params.panelThickness, panelThicknessMax)}
-          min={0.8}
-          max={panelThicknessMax}
-          step={0.1}
-          onChange={(v) => set({ panelThickness: v })}
-        />
+      <Group title="Fit">
+        <p className="field-desc" style={{ marginTop: 0 }}>
+          Depends on your printer. Find yours with the clearance sweep test print (see the{' '}
+          <a href={GUIDE_URL} target="_blank" rel="noopener noreferrer">printing guide</a>).
+        </p>
         <Slider
           label="Groove clearance"
           unit=" mm"
@@ -235,11 +116,23 @@ export default function ParamsPanel() {
           min={0.1}
           max={0.6}
           step={0.05}
-          onChange={(v) => {
-            const newMax = clampPanelMax(params.postSize, v);
-            set({ grooveClearance: v, panelThickness: Math.min(params.panelThickness, newMax) });
-          }}
+          onChange={(v) =>
+            set({ grooveClearance: v })
+          }
+          description="Gap around each panel edge in its groove. Lower = tighter."
         />
+        {params.lidAttach === 'pressfit' && (
+          <Slider
+            label="Peg clearance"
+            unit=" mm"
+            value={params.pegClearance}
+            min={0}
+            max={0.3}
+            step={0.05}
+            onChange={(v) => set({ pegClearance: v })}
+            description="Gap around each lid peg. Lower = tighter."
+          />
+        )}
       </Group>
 
       <Group title="Lithophane">
@@ -260,60 +153,8 @@ export default function ParamsPanel() {
           max={5}
           step={0.1}
           onChange={(v) => set({ lithoMax: v })}
+          description="Also the thickness of the whole panel, border included."
         />
-        <Toggle
-          label="Relief direction"
-          options={[
-            { label: 'Inward', value: 'inward' },
-            { label: 'Outward', value: 'outward' },
-          ]}
-          value={params.relief}
-          onChange={(v) => set({ relief: v as Params['relief'] })}
-        />
-        <Toggle
-          label="Invert brightness"
-          options={[
-            { label: 'Normal', value: false },
-            { label: 'Inverted', value: true },
-          ]}
-          value={params.invert}
-          onChange={(v) => set({ invert: v as boolean })}
-        />
-      </Group>
-
-      <Group title="Image Processing">
-        <div className="field">
-          <div className="field-row">
-            <span className="field-label">Grayscale mode</span>
-            <div className="toggle">
-              {(['rec601', 'rec709', 'average', 'luminosity'] as GrayscaleMode[]).map((m) => (
-                <button
-                  key={m}
-                  className={params.grayscaleMode === m ? 'active' : ''}
-                  onClick={() => set({ grayscaleMode: m })}
-                >
-                  {m === 'rec601' ? '601' : m === 'rec709' ? '709' : m === 'average' ? 'Avg' : 'Lum'}
-                </button>
-              ))}
-            </div>
-          </div>
-          <p className="field-desc">
-            How colors are converted to brightness. Rec.601 suits traditional photography.
-            Luminosity linearizes sRGB first for physically accurate results with modern cameras.
-          </p>
-        </div>
-
-        <Toggle
-          label="Auto contrast"
-          options={[
-            { label: 'Off', value: false },
-            { label: 'On', value: true },
-          ]}
-          value={params.lithoAutoContrast}
-          onChange={(v) => set({ lithoAutoContrast: v as boolean })}
-          description="Stretches the brightness range to fill the full dark-to-light span. Useful for low-contrast or washed-out photos."
-        />
-
         <Slider
           label="Gamma"
           value={params.lithoGamma}
@@ -321,60 +162,27 @@ export default function ParamsPanel() {
           max={2.0}
           step={0.05}
           onChange={(v) => set({ lithoGamma: v })}
-          description="Compensates for Beer-Lambert light decay through PLA. 0.45 gives physically correct shadow depth. Lower = deeper shadows; higher = brighter overall."
+          description="Matches the shading to how light fades through your filament. Tune it with the brightness test print. Lower = deeper shadows; higher = brighter overall."
         />
-
-        <Slider
-          label="Brightness"
-          value={params.lithoBrightness}
-          min={-0.5}
-          max={0.5}
-          step={0.05}
-          onChange={(v) => set({ lithoBrightness: v })}
-          description="Shifts all brightness values up (+) or down (−). Use to correct over- or under-exposed photos."
+        <Toggle
+          label="Textured side"
+          options={[
+            { label: 'Outside', value: 'outward' },
+            { label: 'Inside', value: 'inward' },
+          ]}
+          value={params.relief}
+          onChange={(v) => set({ relief: v as Params['relief'] })}
+          description="Which side of each panel carries the relief. The other side is flat."
         />
-
-        <Slider
-          label="Contrast"
-          value={params.lithoContrast}
-          min={0.5}
-          max={2.0}
-          step={0.05}
-          onChange={(v) => set({ lithoContrast: v })}
-          description="Multiplies the difference from mid-gray. Values above 1 increase the distinction between light and dark areas."
-        />
-
-        <Slider
-          label="Sharpen"
-          value={params.lithoSharpen}
-          min={0}
-          max={2.0}
-          step={0.1}
-          onChange={(v) => set({ lithoSharpen: v })}
-          description="Unsharp mask sharpening. Enhances fine edges and detail. 0 = off. High values may amplify noise."
-        />
-      </Group>
-
-      <Group title="Output">
         <Slider
           label="Resolution"
-          unit=" mm/px"
-          value={params.mmPerPixel}
-          min={0.1}
-          max={1.0}
-          step={0.05}
-          onChange={(v) => set({ mmPerPixel: v })}
-        />
-        <Slider
-          label="Cable hole ⌀"
-          unit=" mm"
-          value={params.cableHoles[0]?.diameter ?? 0}
-          min={0}
-          max={40}
-          step={1}
-          onChange={(v) =>
-            set({ cableHoles: v > 0 ? [{ diameter: v, x: 0, y: 0 }] : [] })
-          }
+          unit=" px/mm"
+          value={params.pixelsPerMm}
+          min={1}
+          max={10}
+          step={0.5}
+          onChange={(v) => set({ pixelsPerMm: v })}
+          description="Photo pixels per mm of panel. Higher = finer detail and bigger files. About 2 per mm of nozzle: 5 for a 0.4 mm nozzle, 10 for 0.2 mm."
         />
       </Group>
     </div>

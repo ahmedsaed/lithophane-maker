@@ -1,32 +1,31 @@
-import type { Params } from './types';
+import type { ImageAdjust, Params } from './types';
 
 /** Sensible defaults for a 100 mm desktop lithophane cube (all mm). */
 export const DEFAULT_PARAMS: Params = {
   cubeSize: 100,
-  postSize: 8,
-  panelThickness: 3,
   lithoMin: 0.7,
   lithoMax: 2.8,
-  grooveClearance: 0.3,
+  grooveClearance: 0.2,
   tongueWidth: 5,
-  invert: false,
   relief: 'outward',
   previewResolution: 180,
-  exportResolution: 380,
-  mmPerPixel: 0.2,
-  bottomThickness: 3,
+  pixelsPerMm: 5,
   lidAttach: 'pressfit',
   pegDepth: 8,
   pegClearance: 0.1,
   magnetDiameter: 6,
   magnetHeight: 3,
   cableHoles: [{ diameter: 8, x: 0, y: 0 }],
-  grayscaleMode: 'rec601',
-  lithoBrightness: 0,
-  lithoContrast: 1,
-  lithoAutoContrast: false,
   lithoGamma: 0.45,
-  lithoSharpen: 0,
+};
+
+/** A new photo's adjustments: none. */
+export const NEUTRAL_ADJUST: ImageAdjust = {
+  brightness: 0,
+  contrast: 1,
+  autoContrast: false,
+  sharpen: 0,
+  invert: false,
 };
 
 /** Per-part preview colours. */

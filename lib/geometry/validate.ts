@@ -1,14 +1,16 @@
 import type { Params } from './types';
-import { cubeLayout, MAGNET_FIT, MIN_ATTACH_WALL, PEG_HOLE_EXTRA } from './layout';
+import { cubeLayout, MAX_PANEL_CELLS, PEG_HOLE_EXTRA } from './layout';
 
 /** Thinnest wall we accept anywhere in a printed part (≈ 3 perimeters at 0.4 mm). */
 export const MIN_WALL = 1.2;
 
-/** Lowest rail (above the floor, or below the lid plate) that still holds a panel edge (mm). */
-export const MIN_RAIL_HEIGHT = 2;
-
-/** Thinnest press-fit peg we trust to survive printing and pressing (mm). */
-export const MIN_PEG_DIAMETER = 3;
+/**
+ * Rough size of one exported panel's binary STL: a front and a back grid of
+ * n × n samples, two triangles per cell each, 50 bytes per triangle.
+ */
+export function estimatePanelMB(samplesPerSide: number): number {
+  return (4 * samplesPerSide * samplesPerSide * 50) / 1e6;
+}
 
 export interface ParamIssue {
   /** `error`: the parts will not print or assemble. `warning`: they will, but with a compromise. */
@@ -16,10 +18,12 @@ export interface ParamIssue {
   message: string;
 }
 
-/** Largest panel thickness that still leaves MIN_WALL outside each frame groove. */
-export function maxPanelThickness(postSize: number, grooveClearance: number): number {
-  return postSize - 2 * grooveClearance - 2 * MIN_WALL;
-}
+/** Below this, the picture looks pixelated (pixels per mm). */
+export const COARSE_PX_PER_MM = 2.5;
+/** Above this, detail is finer than a 0.4 mm nozzle can lay down (pixels per mm). */
+export const FINE_PX_PER_MM = 7;
+/** Warn when one panel's STL would be bigger than this (MB). */
+export const LARGE_PANEL_MB = 60;
 
 /**
  * Check a parameter set for combinations that produce unprintable or
@@ -32,62 +36,14 @@ export function validateParams(params: Params): ParamIssue[] {
   const error = (message: string) => issues.push({ severity: 'error', message });
   const warn = (message: string) => issues.push({ severity: 'warning', message });
 
-  // Material between each frame groove and the outer face of the post.
-  const grooveWall = L.p / 2 - L.t / 2 - L.clear;
-  if (grooveWall < MIN_WALL) {
-    const maxT = maxPanelThickness(params.postSize, params.grooveClearance);
-    error(
-      `Post walls around the panel grooves are ${grooveWall.toFixed(2)} mm thick (minimum ${MIN_WALL} mm). ` +
-      (maxT > 0
-        ? `Reduce panel thickness to ${maxT.toFixed(1)} mm or less, or increase post size.`
-        : 'Increase post size.'),
-    );
-  }
-
+  // The frame is sized to fit the grooves, panels and pegs or magnets (see
+  // frameWidth in layout.ts), so what can still go wrong is a cube too small
+  // to leave a picture inside that frame.
   if (L.windowHalf <= 0) {
-    error('Panels have no room left for the image. Increase cube size or reduce post size.');
+    error(`A ${params.cubeSize} mm cube leaves no room for a picture inside its ${L.cornerReach.toFixed(1)} mm frame. Increase cube size.`);
   }
 
-  // The bottom rail and the lid make the top and bottom of each face's frame,
-  // both as tall as the posts are wide.
-  if (L.cornerReach - L.bottomThickness < MIN_RAIL_HEIGHT) {
-    error(
-      `Bottom thickness leaves no room for the bottom groove. Reduce it to ${Math.floor(L.cornerReach - MIN_RAIL_HEIGHT)} mm or less, or increase post size.`,
-    );
-  }
-  if (L.panelTop - L.postTop < MIN_RAIL_HEIGHT) {
-    error('Panels are too thick for the lid to hold them. Reduce panel thickness or increase post size.');
-  }
-
-  // Each panel's edge rides in a groove; once cornerReach hits its 0.35·C cap,
-  // the edges can reach the neighbouring panels at the corners.
-  const panelEdge = L.sidePanelW / 2 + L.clear;
-  const neighbourInner = L.panelOffset - L.t / 2;
-  if (panelEdge > neighbourInner) {
-    error('Post size is too large for this cube size, so neighbouring panels collide at the corners. Reduce post size or increase cube size.');
-  }
-
-  // Pegs and magnets live in the solid square at each post's outer corner.
-  if (params.lidAttach === 'magnet') {
-    const maxD = L.postCornerSolid - 2 * MIN_ATTACH_WALL - MAGNET_FIT;
-    if (params.magnetDiameter > maxD) {
-      error(
-        maxD >= 2
-          ? `${params.magnetDiameter} mm magnets don't fit in the posts. The largest that fits is ${maxD.toFixed(1)} mm. Use smaller magnets or increase post size.`
-          : 'The posts are too thin for magnets. Increase post size or use press-fit.',
-      );
-    }
-    const maxH = L.lidThickness - MIN_WALL - MAGNET_FIT;
-    if (params.magnetHeight > maxH) {
-      error(
-        `${params.magnetHeight} mm tall magnets are deeper than the lid (max ${Math.max(0, maxH).toFixed(1)} mm). ` +
-        'Use thinner magnets or increase panel thickness.',
-      );
-    }
-  } else {
-    if (L.attachHoleD < MIN_PEG_DIAMETER) {
-      error('The posts are too thin for press-fit pegs. Increase post size.');
-    }
+  if (params.lidAttach === 'pressfit') {
     const postH = L.postTop - (-L.half + L.bottomThickness);
     if (L.postHoleDepth > postH / 2) {
       error(`Peg depth is more than half the post height. Reduce it to ${Math.floor(postH / 2 - PEG_HOLE_EXTRA)} mm or less.`);
@@ -103,14 +59,36 @@ export function validateParams(params: Params): ParamIssue[] {
     }
   }
 
-  if (params.lithoMax > params.panelThickness) {
-    warn(
-      `Max lithophane thickness (${params.lithoMax} mm) exceeds panel thickness (${params.panelThickness} mm), ` +
-      'so the darkest areas are clipped. Increase panel thickness or lower the max.',
-    );
-  }
   if (params.lithoMin >= params.lithoMax) {
     warn('Min and max lithophane thickness are equal, so the image will be flat.');
+  }
+
+  // Export detail. The cap keeps a panel's mesh small enough to build and
+  // download in a browser; say so rather than quietly ignoring the setting.
+  const ppm = params.pixelsPerMm;
+  const requested = Math.round(L.sidePanelW * ppm);
+  const samples = Math.min(requested, MAX_PANEL_CELLS);
+  if (requested > MAX_PANEL_CELLS) {
+    warn(
+      `At this cube size, exports are limited to ${(MAX_PANEL_CELLS / L.sidePanelW).toFixed(1)} px/mm ` +
+      `(${MAX_PANEL_CELLS} pixels across a panel), lower than the ${ppm} px/mm you set.`,
+    );
+  }
+  if (ppm < COARSE_PX_PER_MM) {
+    const across = Math.round(2 * L.windowHalf * ppm);
+    warn(
+      `At ${ppm} px/mm the picture will look pixelated: only about ${across} pixels across the window. ` +
+      '5 px/mm suits a standard 0.4 mm nozzle.',
+    );
+  } else if (ppm > FINE_PX_PER_MM) {
+    warn(`${ppm} px/mm is more detail than a 0.4 mm nozzle can print (about 5 px/mm). It only helps with a finer nozzle, and makes bigger files.`);
+  }
+  const panelMB = estimatePanelMB(samples);
+  if (panelMB > LARGE_PANEL_MB) {
+    warn(
+      `Each panel's STL will be about ${Math.round(panelMB)} MB, so the download may be slow or fail on a phone. ` +
+      'A lower px/mm value makes smaller files.',
+    );
   }
 
   return issues;

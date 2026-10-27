@@ -2,8 +2,8 @@
 
 import { useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
-import { PANEL_SLOTS, type PanelSlot } from '@/lib/geometry/types';
-import CropModal from './CropModal';
+import { PANEL_SLOTS, type CropRect, type PanelSlot } from '@/lib/geometry/types';
+import EditImageModal from './EditImageModal';
 
 const LABELS: Record<PanelSlot, string> = {
   front: 'Front',
@@ -13,7 +13,27 @@ const LABELS: Record<PanelSlot, string> = {
   top: 'Top',
 };
 
-function Slot({ slot, onCrop }: { slot: PanelSlot; onCrop: (slot: PanelSlot) => void }) {
+/**
+ * Show only the cropped region in the square slot, matching the panel. The crop
+ * is a normalized rectangle that is square in pixels, so scaling the image by
+ * 1/w × 1/h and shifting it by the crop's origin fills the slot with exactly
+ * that region. Without a crop, `object-fit: cover` shows the centre, as the
+ * panel does.
+ */
+function cropStyle(crop: CropRect | undefined): { className?: string; style?: React.CSSProperties } {
+  if (!crop) return {};
+  return {
+    className: 'cropped',
+    style: {
+      width: `${100 / crop.w}%`,
+      height: `${100 / crop.h}%`,
+      left: `${(-100 * crop.x) / crop.w}%`,
+      top: `${(-100 * crop.y) / crop.h}%`,
+    },
+  };
+}
+
+function Slot({ slot, onEdit }: { slot: PanelSlot; onEdit: (slot: PanelSlot) => void }) {
   const data = useStore((s) => s.slots[slot]);
   const setImage = useStore((s) => s.setImage);
   const removeImage = useStore((s) => s.removeImage);
@@ -27,16 +47,17 @@ function Slot({ slot, onCrop }: { slot: PanelSlot; onCrop: (slot: PanelSlot) => 
       {data ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={data.thumbnailUrl} alt={LABELS[slot]} />
+          <img src={data.thumbnailUrl} alt={LABELS[slot]} {...cropStyle(data.crop)} />
           <button
             className="crop-btn"
             onClick={(e) => {
               e.stopPropagation();
-              onCrop(slot);
+              onEdit(slot);
             }}
-            aria-label={`Crop ${LABELS[slot]}`}
+            aria-label={`Edit ${LABELS[slot]} photo`}
+            title="Crop and adjust this photo"
           >
-            Crop
+            Edit
           </button>
           <button
             className="remove"
@@ -69,38 +90,42 @@ function Slot({ slot, onCrop }: { slot: PanelSlot; onCrop: (slot: PanelSlot) => 
 }
 
 export default function UploaderGrid() {
-  const [cropSlot, setCropSlot] = useState<PanelSlot | null>(null);
+  const [editSlot, setEditSlot] = useState<PanelSlot | null>(null);
   const slots = useStore((s) => s.slots);
   const setCrop = useStore((s) => s.setCrop);
+  const setAdjust = useStore((s) => s.setAdjust);
+  const setAdjustAll = useStore((s) => s.setAdjustAll);
 
-  const openCrop = (slot: PanelSlot) => setCropSlot(slot);
-  const closeCrop = () => setCropSlot(null);
-
-  const cropData = cropSlot ? slots[cropSlot] : null;
-
-  // Every face shows a square image window.
-  const targetAspect = 1;
+  const closeEdit = () => setEditSlot(null);
+  const editData = editSlot ? slots[editSlot] : null;
 
   return (
     <>
       <div className="slot-grid">
         {PANEL_SLOTS.map((slot) => (
-          <Slot key={slot} slot={slot} onCrop={openCrop} />
+          <Slot key={slot} slot={slot} onEdit={setEditSlot} />
         ))}
       </div>
 
-      {cropSlot && cropData && (
-        <CropModal
-          thumbnailUrl={cropData.thumbnailUrl}
-          imgW={cropData.imageData.width}
-          imgH={cropData.imageData.height}
-          targetAspect={targetAspect}
-          initial={cropData.crop}
-          onConfirm={(crop) => {
-            setCrop(cropSlot, crop);
-            closeCrop();
+      {editSlot && editData && (
+        <EditImageModal
+          key={editSlot}
+          label={LABELS[editSlot]}
+          thumbnailUrl={editData.thumbnailUrl}
+          imageData={editData.imageData}
+          initialCrop={editData.crop}
+          initialAdjust={editData.adjust}
+          onDone={(crop, adjust) => {
+            setCrop(editSlot, crop);
+            setAdjust(editSlot, adjust);
+            closeEdit();
           }}
-          onClose={closeCrop}
+          onApplyAll={(crop, adjust) => {
+            setCrop(editSlot, crop);
+            setAdjustAll(adjust);
+            closeEdit();
+          }}
+          onClose={closeEdit}
         />
       )}
     </>

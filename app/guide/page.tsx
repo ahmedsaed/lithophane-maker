@@ -1,11 +1,40 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GitHubIconLink, ISSUES_URL } from '@/components/GitHubLink';
+import { SITE_NAME } from '@/lib/site';
+
+// The site's social card. A page that sets openGraph loses the image it would
+// otherwise inherit from app/opengraph-image.png, so name it here.
+const SOCIAL_IMAGE = {
+  url: '/opengraph-image.png',
+  width: 1200,
+  height: 630,
+  alt: 'A lit lithophane cube lamp beside the words Lithophane Cube Maker: turn five photos into a 3D-printable lithophane lamp.',
+};
+
+const GUIDE_DESCRIPTION =
+  'How to print a lithophane cube lamp that fits first time: tune your printer, check the fits with small test pieces, dial in the lithophane, then print and assemble.';
 
 export const metadata: Metadata = {
-  title: 'Printing Guide · Lithophane Cube Maker',
-  description:
-    'Tune your printer, check the fits with small test pieces, dial in the lithophane, then print and assemble the cube.',
+  title: 'Printing Guide',
+  description: GUIDE_DESCRIPTION,
+  alternates: { canonical: '/guide/' },
+  // Next replaces openGraph rather than merging it, so restate the site fields.
+  openGraph: {
+    type: 'article',
+    siteName: SITE_NAME,
+    url: '/guide/',
+    title: `Printing Guide · ${SITE_NAME}`,
+    description: GUIDE_DESCRIPTION,
+    locale: 'en_US',
+    images: [SOCIAL_IMAGE],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `Printing Guide · ${SITE_NAME}`,
+    description: GUIDE_DESCRIPTION,
+    images: [SOCIAL_IMAGE],
+  },
 };
 
 function Table({ head, rows }: { head: string[]; rows: React.ReactNode[][] }) {
@@ -161,7 +190,7 @@ export default function GuidePage() {
           tight="it needs force or stops before the bottom."
           loose="it drops in and rattles."
         />
-        <p><strong>Set:</strong> <Setting>Panel → Groove clearance</Setting> to the tightest post that passes.</p>
+        <p><strong>Set:</strong> <Setting>Fit → Groove clearance</Setting> to the tightest post that passes.</p>
 
         <h3>Lid fit (Peg clearance), press-fit lids</h3>
         <p>
@@ -183,7 +212,7 @@ export default function GuidePage() {
           the light, so it has to keep gripping.
         </p>
         <p>
-          <strong>Set:</strong> <Setting>Lid → Peg clearance</Setting> to that one. If even
+          <strong>Set:</strong> <Setting>Fit → Peg clearance</Setting> to that one. If even
           the tightest is loose, raise <Setting>Peg depth</Setting>.
         </p>
 
@@ -195,12 +224,15 @@ export default function GuidePage() {
         </p>
         <p><strong>Test:</strong> press a magnet into each hole.</p>
         <ul>
-          <li><strong>Good:</strong> it goes in snugly and sits flush or slightly below the surface. Add a drop of glue in the final build.</li>
+          <li><strong>Good:</strong> it goes in snugly and sits flush or slightly below the surface. On many printers it then holds by friction alone, firmly enough that it can’t be pulled back out.</li>
+          <li><strong>Loose:</strong> it slides out on its own. Fit it with a drop of glue in the final build.</li>
           <li><strong>Doesn’t fit:</strong> check the <Setting>Magnet diameter / height</Setting> settings match your magnets.</li>
         </ul>
         <div className="guide-note warn">
-          When gluing, <strong>check every pair attracts before the glue sets.</strong> A
-          flipped magnet repels the lid.
+          <strong>Check the polarity before pressing each magnet in.</strong> A pressed-in
+          magnet may never come out again, and a flipped one repels the lid. Stack the
+          magnet for a lid corner on the one for the post below it, mark the face that
+          points down, and press it in that way.
         </div>
       </section>
 
@@ -261,7 +293,11 @@ export default function GuidePage() {
             ['Everything looks too dark or too washed out', <>Adjust <Setting>Gamma</Setting>: lower for deeper shadows, higher for brighter overall</>],
           ]}
         />
-        <p>Max thickness can’t exceed <Setting>Panel thickness</Setting>. The maker warns you if it does.</p>
+        <p>
+          <Setting>Max thickness</Setting> is also the panel’s own thickness. The thicker it is,
+          the more light it blocks and the wider the frame needs to be, so the slider stops
+          before the groove walls would get too thin.
+        </p>
 
         <h3>Choosing a light</h3>
         <ul>
@@ -292,8 +328,8 @@ export default function GuidePage() {
         <ol>
           <li>Slide each side panel down the corner grooves until it seats in the bottom groove. Each file is named for its side, so match them up.</li>
           <li>Place the light inside and route its cable through the floor hole.</li>
-          <li>Lay the top panel on the side panels, with its notched corners over the posts.</li>
-          <li>Press the lid down onto the posts. It traps the top panel.</li>
+          <li>Lay the top panel on the four small supports at the posts’ inner corners.</li>
+          <li>Press the lid down onto the posts. Its skirts slide over the side panels’ top edges, and it traps the top panel.</li>
         </ol>
       </section>
 

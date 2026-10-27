@@ -4,7 +4,8 @@ import { buildAllParts } from './assembly';
 import { cubeLayout } from './layout';
 import { DEFAULT_PARAMS } from './constants';
 import { geometryToManifold, mBox, mIntersect, mTranslate, mUnionAll, withManifoldScope, type Manifold } from './mCsg';
-import { validateParams, maxPanelThickness } from './validate';
+import { validateParams } from './validate';
+import { frameWidth } from './layout';
 import type { HeightMap, Params, PartId } from './types';
 
 // Overlaps below this (mm³) are floating-point noise from touching faces.
@@ -31,16 +32,10 @@ function randomParams(rand: () => number): Params {
   const pick = <T,>(xs: T[]) => xs[Math.floor(rand() * xs.length)];
   const range = (min: number, max: number, step: number) =>
     min + Math.round((rand() * (max - min)) / step) * step;
-  const postSize = range(4, 16, 0.5);
-  const grooveClearance = range(0.1, 0.6, 0.05);
-  const tMax = Math.max(0.8, Math.min(6, maxPanelThickness(postSize, grooveClearance)));
   return {
     ...DEFAULT_PARAMS,
     cubeSize: range(40, 200, 1),
-    postSize,
-    grooveClearance,
-    panelThickness: range(0.8, tMax, 0.1),
-    bottomThickness: range(1.5, 10, 0.5),
+    grooveClearance: range(0.1, 0.6, 0.05),
     lidAttach: pick(['pressfit', 'magnet'] as const),
     pegDepth: range(3, 15, 0.5),
     pegClearance: range(0, 0.3, 0.05),
@@ -115,6 +110,26 @@ function assemblyProblemsScoped(params: Params): string[] {
     problems.push(`top panel sits ${topDepth.toFixed(2)} mm deep but side panels ${sideDepth.toFixed(2)} mm`);
   }
 
+  // Every panel rests on the frame (side panels in their bottom groove, the top
+  // panel on the corner supports): nudged down, each must run into it. And all
+  // five are the same square.
+  for (const id of ['front', 'back', 'left', 'right', 'top'] as const) {
+    const v = mIntersect(mTranslate(solids.get(id)!, 0, 0, -0.2), frame).volume();
+    if (!(v > OVERLAP_TOL)) problems.push(`${id} panel isn't supported by the frame`);
+  }
+  const footprint = (id: PartId) => {
+    const b = solids.get(id)!.boundingBox();
+    return [0, 1, 2].map((a) => b.max[a] - b.min[a]).sort((x, y) => y - x).slice(0, 2);
+  };
+  const [w, h] = footprint('front');
+  for (const id of ['back', 'left', 'right', 'top'] as const) {
+    const [w2, h2] = footprint(id);
+    if (Math.abs(w2 - w) > 0.01 || Math.abs(h2 - h) > 0.01) {
+      problems.push(`${id} panel is ${w2.toFixed(2)}×${h2.toFixed(2)}, front is ${w.toFixed(2)}×${h.toFixed(2)}`);
+    }
+  }
+  if (Math.abs(w - h) > 0.01) problems.push(`panels aren't square (${w.toFixed(2)}×${h.toFixed(2)})`);
+
   // The lid must lower straight down onto the cube: part-way on, its pegs are
   // inside the post holes and nothing may collide.
   const lid = solids.get('lid')!;
@@ -133,9 +148,23 @@ describe('validateParams', () => {
     expect(validateParams(DEFAULT_PARAMS)).toEqual([]);
   });
 
-  it('rejects panels too thick for the posts', () => {
-    const issues = validateParams({ ...DEFAULT_PARAMS, postSize: 4, panelThickness: 3 });
-    expect(issues.some((i) => i.severity === 'error')).toBe(true);
+  it('sizes the frame to what the posts hold', () => {
+    // 5 mm border + 0.2 clearance + 6.8 mm peg hole + 2 × 1.2 mm walls: the tested cube.
+    expect(frameWidth(DEFAULT_PARAMS)).toBeCloseTo(14.4, 6);
+    // A 6 mm magnet's 6.2 mm hole is smaller than the peg's.
+    expect(frameWidth({ ...DEFAULT_PARAMS, lidAttach: 'magnet' })).toBeCloseTo(13.8, 6);
+  });
+
+  it('widens the frame for large magnets instead of rejecting them', () => {
+    const p = { ...DEFAULT_PARAMS, lidAttach: 'magnet' as const, magnetDiameter: 10 };
+    expect(frameWidth(p)).toBeGreaterThan(14.4);
+    expect(validateParams(p)).toEqual([]);
+  });
+
+  it('widens the frame for thick panels instead of rejecting them', () => {
+    const p = { ...DEFAULT_PARAMS, lithoMax: 5 };
+    expect(frameWidth(p)).toBeGreaterThan(14.4);
+    expect(validateParams(p).filter((i) => i.severity === 'error')).toEqual([]);
   });
 
   it('rejects a cable hole wider than the floor', () => {
@@ -143,13 +172,8 @@ describe('validateParams', () => {
     expect(issues.some((i) => i.severity === 'error')).toBe(true);
   });
 
-  it('rejects posts too large for the cube', () => {
-    const issues = validateParams({ ...DEFAULT_PARAMS, cubeSize: 41, postSize: 14.5, panelThickness: 5.9, grooveClearance: 0.45 });
-    expect(issues.some((i) => i.severity === 'error')).toBe(true);
-  });
-
-  it('rejects magnets too large for the posts', () => {
-    const issues = validateParams({ ...DEFAULT_PARAMS, lidAttach: 'magnet', magnetDiameter: 10 });
+  it('rejects a cube too small to leave a picture inside its frame', () => {
+    const issues = validateParams({ ...DEFAULT_PARAMS, cubeSize: 28 });
     expect(issues.some((i) => i.severity === 'error')).toBe(true);
   });
 
@@ -157,9 +181,15 @@ describe('validateParams', () => {
     expect(validateParams({ ...DEFAULT_PARAMS, lidAttach: 'magnet' })).toEqual([]);
   });
 
-  it('warns when the relief would be clipped', () => {
-    const issues = validateParams({ ...DEFAULT_PARAMS, lithoMax: 4 });
+  it('warns about coarse resolution', () => {
+    const issues = validateParams({ ...DEFAULT_PARAMS, pixelsPerMm: 2 });
     expect(issues.map((i) => i.severity)).toEqual(['warning']);
+  });
+
+  it('says when a big cube limits the resolution, and warns about file size', () => {
+    const messages = validateParams({ ...DEFAULT_PARAMS, cubeSize: 200, pixelsPerMm: 10 }).map((i) => i.message);
+    expect(messages.some((m) => m.includes('limited to'))).toBe(true);
+    expect(messages.some((m) => m.includes('MB'))).toBe(true);
   });
 });
 
@@ -184,10 +214,10 @@ describe('assembled geometry', () => {
       checked++;
       const problems = assemblyProblems(params);
       if (problems.length) {
-        const { cubeSize, postSize, panelThickness, grooveClearance, bottomThickness, relief, cableHoles,
+        const { cubeSize, lithoMax, grooveClearance, relief, cableHoles,
           lidAttach, pegDepth, pegClearance, magnetDiameter, magnetHeight } = params;
         failures.push(
-          JSON.stringify({ cubeSize, postSize, panelThickness, grooveClearance, bottomThickness, relief, cableHoles,
+          JSON.stringify({ cubeSize, lithoMax, grooveClearance, relief, cableHoles,
             lidAttach, pegDepth, pegClearance, magnetDiameter, magnetHeight }) +
           '\n    ' + problems.join('\n    '),
         );

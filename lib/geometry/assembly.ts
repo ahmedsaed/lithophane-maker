@@ -5,7 +5,6 @@ import { buildLithophanePanel } from './lithophanePanel';
 import { centerCropHeightMap, downsampleHeightMap } from '../image/toHeightmap';
 import { buildFrame } from './frame';
 import { buildLidFrame } from './lidFrame';
-import { geometryToManifold, manifoldToGeometry, mBox, mSubtract, mUnionAll, withManifoldScope } from './mCsg';
 
 /**
  * Stand-in image for an empty slot: flat mid-gray, so a blank panel is one even
@@ -58,14 +57,14 @@ export function standUpright(geom: BufferGeometry): BufferGeometry {
 }
 
 /** Cell counts driven by mm/pixel, capped at the render resolution limit. */
-function mmPerPixelCells(
+function resolutionCells(
   panelW: number,
   panelH: number,
-  mmPerPixel: number,
+  pixelsPerMm: number,
   resolution: number,
 ): { cellsX: number; cellsY: number } {
-  const tX = Math.max(1, Math.round(panelW / mmPerPixel));
-  const tY = Math.max(1, Math.round(panelH / mmPerPixel));
+  const tX = Math.max(1, Math.round(panelW * pixelsPerMm));
+  const tY = Math.max(1, Math.round(panelH * pixelsPerMm));
   const scale = Math.min(1, resolution / Math.max(tX, tY));
   return {
     cellsX: Math.max(1, Math.round(tX * scale)),
@@ -73,33 +72,33 @@ function mmPerPixelCells(
   };
 }
 
-/** Build the lithophane plate for a side panel (centred, in local XY). */
-function buildSidePlate(
+/**
+ * Build a lithophane plate (centred, in local XY). Every panel, top included,
+ * is the same square: the image fills the window and an `engage`-wide flat
+ * border on every edge rides in the grooves.
+ */
+function buildPlate(
   hm: HeightMap,
   params: Params,
   L: CubeLayout,
   resolution: number,
+  mirrorX: boolean,
 ): BufferGeometry {
-  // The image fills the square window between the posts, bottom rail and lid.
-  const cropped = centerCropHeightMap(hm, 2 * L.windowHalf, 2 * L.windowHalf);
-  const winZ = -L.sidePanelCenterZ; // window centre (Z = 0) in panel coordinates
-  const { cellsX, cellsY } = mmPerPixelCells(L.sidePanelW, L.sidePanelH, params.mmPerPixel, resolution);
+  const size = L.sidePanelW;
+  const cropped = centerCropHeightMap(hm, size, size);
+  const { cellsX, cellsY } = resolutionCells(size, size, params.pixelsPerMm, resolution);
   const downsampled = downsampleHeightMap(cropped, cellsX, cellsY);
   const geom = buildLithophanePanel({
-    width: L.sidePanelW,
-    height: L.sidePanelH,
+    width: size,
+    height: size,
     thickness: L.t,
     tongueWidth: L.engage,
-    imageRect: {
-      minX: -L.windowHalf, maxX: L.windowHalf,
-      minY: winZ - L.windowHalf, maxY: winZ + L.windowHalf,
-    },
     lithoMin: params.lithoMin,
     lithoMax: params.lithoMax,
     heightMap: downsampled,
     cellsX,
     cellsY,
-    mirrorX: params.relief === 'inward',
+    mirrorX,
     reliefSign: reliefSign(params),
     gamma: params.lithoGamma,
   });
@@ -110,49 +109,17 @@ function buildSidePlate(
   return geom;
 }
 
+/** A side panel's plate. Mirrored for inward relief, which is viewed through the plate. */
+function buildSidePlate(hm: HeightMap, params: Params, L: CubeLayout, resolution: number): BufferGeometry {
+  return buildPlate(hm, params, L, resolution, params.relief === 'inward');
+}
+
 /**
- * Build the lithophane plate for the top panel (flat in local XY, ready to print).
- * The image fills only the lid opening; the flat border beyond it rests on the
- * side-panel tops under the lid, and each corner is notched to clear a post.
+ * The top panel's plate. Never mirrored: the viewer always looks straight down
+ * at it, not through it from the far side.
  */
-function buildTopPlate(
-  hm: HeightMap,
-  params: Params,
-  L: CubeLayout,
-  resolution: number,
-): BufferGeometry {
-  const { topPanelW, topPanelD } = L;
-  const opening = 2 * (L.half - L.cornerReach);
-  const cropped = centerCropHeightMap(hm, topPanelW, topPanelD);
-  const { cellsX, cellsY } = mmPerPixelCells(topPanelW, topPanelD, params.mmPerPixel, resolution);
-  const downsampled = downsampleHeightMap(cropped, cellsX, cellsY);
-  const rs = reliefSign(params);
-  const plate = buildLithophanePanel({
-    width: topPanelW,
-    height: topPanelD,
-    thickness: L.t,
-    tongueWidth: (topPanelW - opening) / 2,
-    lithoMin: params.lithoMin,
-    lithoMax: params.lithoMax,
-    heightMap: downsampled,
-    cellsX,
-    cellsY,
-    // Top panel is viewed from above; light comes from below.
-    // No X-mirror needed regardless of relief direction — the viewer always
-    // looks straight down at the panel (not through it from the far side).
-    mirrorX: false,
-    reliefSign: rs,
-    gamma: params.lithoGamma,
-  });
-  plate.translate(0, 0, (-L.t / 2) * rs);
-  const n = L.topNotch;
-  const geom = withManifoldScope(() => {
-    const notches = L.corners.map(([sx, sy]) =>
-      mBox(2 * n, 2 * n, 2 * L.t + 2, (sx * topPanelW) / 2, (sy * topPanelD) / 2, 0));
-    return manifoldToGeometry(mSubtract(geometryToManifold(plate), mUnionAll(notches)));
-  });
-  geom.computeVertexNormals();
-  return geom;
+function buildTopPlate(hm: HeightMap, params: Params, L: CubeLayout, resolution: number): BufferGeometry {
+  return buildPlate(hm, params, L, resolution, false);
 }
 
 /** A complete side part (lithophane plate) in local frame. */
@@ -196,7 +163,7 @@ export function buildPanelInPlace(
   return local;
 }
 
-/** Top panel in assembled position: resting on the side-panel tops, under the lid. */
+/** Top panel in assembled position: resting on the posts' corner supports, under the lid. */
 export function buildTopPanelInPlace(
   hm: HeightMap,
   params: Params,
@@ -204,7 +171,7 @@ export function buildTopPanelInPlace(
 ): BufferGeometry {
   const L = cubeLayout(params);
   const geom = buildTopPlate(hm, params, L, resolution);
-  geom.translate(0, 0, L.panelTop + L.t / 2);
+  geom.translate(0, 0, L.topPanelBase + L.t / 2);
   geom.computeVertexNormals();
   geom.computeBoundingBox();
   return geom;

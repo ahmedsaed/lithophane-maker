@@ -22,10 +22,11 @@ const PEG_TIP_INSET = 0.4;
  * Lid — the top band of the cube, `cornerReach` tall so every side face shows
  * a frame of equal width on all four edges, and the top face a matching ring.
  *
- * It has corner blocks continuing the posts (grooves included), a skirt along
- * each face that hangs over the side panels' top edges from outside, and a top
- * plate whose underside has a cross-shaped recess for the top panel, which
- * rests on the side-panel tops and is trapped there.
+ * It has corner blocks continuing the posts (grooves included), skirts with a
+ * groove for each side panel's top border, mirroring the frame's bottom rails,
+ * and a top plate with a square recess underneath. The top panel rests on the
+ * frame's corner supports, which rise into pockets in the corner blocks, and
+ * the plate traps it from above.
  * The corner blocks sit on the post tops and attach either with press-fit pegs
  * that drop into holes in the posts, or with disc magnets glued into both.
  *
@@ -38,32 +39,38 @@ export function buildLidFrame(params: Params): BufferGeometry {
 
 function buildLidFrameScoped(params: Params): BufferGeometry {
   const L = cubeLayout(params);
-  const { C, half, clear, cornerReach, corners, lidRing, lidRecess, postTop, panelTop, panelOuter } = L;
-  const inner = half - cornerReach; // post inner face = edge of the lid opening
+  const { C, half, clear, cornerReach, corners, lidRing, lidRecess, postTop, topPanelBase, panelEdge, windowHalf } = L;
 
   const cornerBlocks = corners.map(([sx, sy]) =>
     mBox(cornerReach, cornerReach, half - postTop,
       sx * (half - cornerReach / 2), sy * (half - cornerReach / 2), (postTop + half) / 2));
-  // The plate reaches eps down into the rails so the union fuses one body.
-  const plate = mBox(C, C, lidRing + eps, 0, 0, panelTop + (lidRing - eps) / 2);
-  // Skirts hang over the side-panel top edges from outside; no inner wall,
-  // because the top panel reaches out over those edges.
-  const skirtInner = panelOuter + clear;
-  const body = mUnionAll([...cornerBlocks, plate, ...faceRails(L, postTop, panelTop, skirtInner)]);
+  // The plate reaches eps down into the skirts so the union fuses one body.
+  const plate = mBox(C, C, lidRing + eps, 0, 0, topPanelBase + (lidRing - eps) / 2);
+  // Skirts are the same rails as the frame's bottom band, so the side panels'
+  // top borders sit in a full groove, mirroring the bottom.
+  const body = mUnionAll([...cornerBlocks, plate, ...faceRails(L, postTop, topPanelBase)]);
 
-  const opening = mBox(2 * inner, 2 * inner, C, 0, 0, half);
-  // Cross-shaped recess: two arms that reach the side panels' outer faces,
-  // stopping at the post inner faces so the corner blocks stay solid.
-  // Starts 2·eps below panelTop: the plate's underside sits at panelTop − eps,
-  // and a coplanar cutter face there leaves zero-volume slivers.
+  const opening = mBox(2 * windowHalf, 2 * windowHalf, C, 0, 0, half);
+  // Square recess for the top panel (the same square as every panel).
+  // Starts 2·eps below topPanelBase: the plate's underside sits at
+  // topPanelBase − eps, and a coplanar cutter face there leaves zero-volume slivers.
   const recessH = lidRecess + 2 * eps;
-  const recessZ = panelTop - 2 * eps + recessH / 2;
-  const reach = 2 * (panelOuter + clear);
+  const recessZ = topPanelBase - 2 * eps + recessH / 2;
+  const recess = 2 * (panelEdge + clear);
+  // Pockets over the frame's corner supports, `clear` wider so the lid lowers
+  // past them; they open into the recess above.
+  const pocket = panelEdge + clear - windowHalf + eps;
+  const pocketH = topPanelBase - postTop + 2 * eps;
+  const pockets = corners.map(([sx, sy]) =>
+    mBox(pocket, pocket, pocketH,
+      sx * (windowHalf - eps + pocket / 2), sy * (windowHalf - eps + pocket / 2), (postTop + topPanelBase) / 2));
   const cuts = [
     opening,
-    mBox(2 * inner, reach, recessH, 0, 0, recessZ),
-    mBox(reach, 2 * inner, recessH, 0, 0, recessZ),
-    ...panelSlotCutters(L, postTop, panelTop, false),
+    mBox(recess, recess, recessH, 0, 0, recessZ),
+    ...pockets,
+    // The side panels' top borders rise `engage` above the window; the groove
+    // leaves `clear` above them.
+    ...panelSlotCutters(L, postTop, panelEdge + clear),
   ];
 
   const pegs = [];
