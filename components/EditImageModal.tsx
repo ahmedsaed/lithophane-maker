@@ -77,14 +77,17 @@ export default function EditImageModal({
   }, [crop.x, crop.y]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragStart.current || !containerRef.current) return;
+    // Read the drag start now: React may run the updater below after a fast
+    // pointerup has already cleared dragStart.
+    const start = dragStart.current;
+    if (!start || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const dx = (e.clientX - dragStart.current.px) / rect.width;
-    const dy = (e.clientY - dragStart.current.py) / rect.height;
+    const x = start.cx + (e.clientX - start.px) / rect.width;
+    const y = start.cy + (e.clientY - start.py) / rect.height;
     setCrop((prev) => ({
       ...prev,
-      x: Math.max(0, Math.min(1 - prev.w, dragStart.current!.cx + dx)),
-      y: Math.max(0, Math.min(1 - prev.h, dragStart.current!.cy + dy)),
+      x: Math.max(0, Math.min(1 - prev.w, x)),
+      y: Math.max(0, Math.min(1 - prev.h, y)),
     }));
   }, []);
 
