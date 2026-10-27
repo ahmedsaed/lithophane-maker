@@ -12,7 +12,7 @@ export const DEFAULT_PARAMS: Params = {
   invert: false,
   relief: 'outward',
   previewResolution: 180,
-  mmPerPixel: 0.2,
+  pixelsPerMm: 5,
   lidAttach: 'pressfit',
   pegDepth: 8,
   pegClearance: 0.1,

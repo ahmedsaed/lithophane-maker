@@ -35,10 +35,10 @@ export function maxPanelThickness(frameWidth: number, grooveClearance: number): 
   return frameWidth / FRAME_PER_POST - 2 * grooveClearance - 2 * MIN_WALL;
 }
 
-/** Above this, an exported panel's relief is visibly stepped (mm per sample). */
-export const COARSE_MM_PER_PIXEL = 0.4;
-/** Below this, detail is finer than a 0.4 mm nozzle can lay down (mm per sample). */
-export const FINE_MM_PER_PIXEL = 0.15;
+/** Below this, the picture looks pixelated (pixels per mm). */
+export const COARSE_PX_PER_MM = 2.5;
+/** Above this, detail is finer than a 0.4 mm nozzle can lay down (pixels per mm). */
+export const FINE_PX_PER_MM = 7;
 /** Warn when one panel's STL would be bigger than this (MB). */
 export const LARGE_PANEL_MB = 60;
 
@@ -125,24 +125,29 @@ export function validateParams(params: Params): ParamIssue[] {
 
   // Export detail. The cap keeps a panel's mesh small enough to build and
   // download in a browser; say so rather than quietly ignoring the setting.
-  const requested = Math.round(L.sidePanelW / params.mmPerPixel);
+  const ppm = params.pixelsPerMm;
+  const requested = Math.round(L.sidePanelW * ppm);
   const samples = Math.min(requested, MAX_PANEL_CELLS);
   if (requested > MAX_PANEL_CELLS) {
     warn(
-      `At this cube size, exports are limited to ${(L.sidePanelW / MAX_PANEL_CELLS).toFixed(2)} mm per pixel ` +
-      `(${MAX_PANEL_CELLS} samples across a panel), so they are coarser than the ${params.mmPerPixel} mm you set.`,
+      `At this cube size, exports are limited to ${(MAX_PANEL_CELLS / L.sidePanelW).toFixed(1)} px/mm ` +
+      `(${MAX_PANEL_CELLS} pixels across a panel), lower than the ${ppm} px/mm you set.`,
     );
   }
-  if (params.mmPerPixel > COARSE_MM_PER_PIXEL) {
-    warn(`At ${params.mmPerPixel} mm per pixel the image will look visibly stepped. 0.2 mm suits a 0.4 mm nozzle.`);
-  } else if (params.mmPerPixel < FINE_MM_PER_PIXEL) {
-    warn(`${params.mmPerPixel} mm per pixel is finer than a 0.4 mm nozzle can print, and only adds detail with a smaller nozzle.`);
+  if (ppm < COARSE_PX_PER_MM) {
+    const across = Math.round(2 * L.windowHalf * ppm);
+    warn(
+      `At ${ppm} px/mm the picture will look pixelated: only about ${across} pixels across the window. ` +
+      '5 px/mm suits a standard 0.4 mm nozzle.',
+    );
+  } else if (ppm > FINE_PX_PER_MM) {
+    warn(`${ppm} px/mm is more detail than a 0.4 mm nozzle can print (about 5 px/mm). It only helps with a finer nozzle, and makes bigger files.`);
   }
   const panelMB = estimatePanelMB(samples);
   if (panelMB > LARGE_PANEL_MB) {
     warn(
       `Each panel's STL will be about ${Math.round(panelMB)} MB, so the download may be slow or fail on a phone. ` +
-      'A larger mm-per-pixel value makes smaller files.',
+      'A lower px/mm value makes smaller files.',
     );
   }
 

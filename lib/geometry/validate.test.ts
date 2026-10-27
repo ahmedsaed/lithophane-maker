@@ -177,12 +177,12 @@ describe('validateParams', () => {
   });
 
   it('warns about coarse resolution', () => {
-    const issues = validateParams({ ...DEFAULT_PARAMS, mmPerPixel: 0.5 });
+    const issues = validateParams({ ...DEFAULT_PARAMS, pixelsPerMm: 2 });
     expect(issues.map((i) => i.severity)).toEqual(['warning']);
   });
 
   it('says when a big cube limits the resolution, and warns about file size', () => {
-    const messages = validateParams({ ...DEFAULT_PARAMS, cubeSize: 200, mmPerPixel: 0.1 }).map((i) => i.message);
+    const messages = validateParams({ ...DEFAULT_PARAMS, cubeSize: 200, pixelsPerMm: 10 }).map((i) => i.message);
     expect(messages.some((m) => m.includes('limited to'))).toBe(true);
     expect(messages.some((m) => m.includes('MB'))).toBe(true);
   });

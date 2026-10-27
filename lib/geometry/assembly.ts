@@ -57,14 +57,14 @@ export function standUpright(geom: BufferGeometry): BufferGeometry {
 }
 
 /** Cell counts driven by mm/pixel, capped at the render resolution limit. */
-function mmPerPixelCells(
+function resolutionCells(
   panelW: number,
   panelH: number,
-  mmPerPixel: number,
+  pixelsPerMm: number,
   resolution: number,
 ): { cellsX: number; cellsY: number } {
-  const tX = Math.max(1, Math.round(panelW / mmPerPixel));
-  const tY = Math.max(1, Math.round(panelH / mmPerPixel));
+  const tX = Math.max(1, Math.round(panelW * pixelsPerMm));
+  const tY = Math.max(1, Math.round(panelH * pixelsPerMm));
   const scale = Math.min(1, resolution / Math.max(tX, tY));
   return {
     cellsX: Math.max(1, Math.round(tX * scale)),
@@ -86,7 +86,7 @@ function buildPlate(
 ): BufferGeometry {
   const size = L.sidePanelW;
   const cropped = centerCropHeightMap(hm, size, size);
-  const { cellsX, cellsY } = mmPerPixelCells(size, size, params.mmPerPixel, resolution);
+  const { cellsX, cellsY } = resolutionCells(size, size, params.pixelsPerMm, resolution);
   const downsampled = downsampleHeightMap(cropped, cellsX, cellsY);
   const geom = buildLithophanePanel({
     width: size,

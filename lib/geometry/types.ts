@@ -58,8 +58,8 @@ export interface Params {
   magnetDiameter: number;
   /** Disc magnet height (mm). */
   magnetHeight: number;
-  /** Exported detail: mm of panel per image sample. Exports honour it up to MAX_PANEL_CELLS. */
-  mmPerPixel: number;
+  /** Exported detail: image samples per mm of panel. Higher = finer. Exports honour it up to MAX_PANEL_CELLS. */
+  pixelsPerMm: number;
   /** Cable/USB holes in the solid bottom. */
   cableHoles: CableHole[];
 

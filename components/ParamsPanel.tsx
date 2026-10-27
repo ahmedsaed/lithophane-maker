@@ -285,13 +285,13 @@ export default function ParamsPanel() {
         />
         <Slider
           label="Resolution"
-          unit=" mm/px"
-          value={params.mmPerPixel}
-          min={0.1}
-          max={1.0}
-          step={0.05}
-          onChange={(v) => set({ mmPerPixel: v })}
-          description="Panel size of one image pixel. 0.2 suits a 0.4 mm nozzle; go finer only with a smaller nozzle. Finer means bigger files."
+          unit=" px/mm"
+          value={params.pixelsPerMm}
+          min={1}
+          max={10}
+          step={0.5}
+          onChange={(v) => set({ pixelsPerMm: v })}
+          description="Photo pixels per mm of panel. Higher = finer detail and bigger files. About 2 per mm of nozzle: 5 for a 0.4 mm nozzle, 10 for 0.2 mm."
         />
       </Group>
 
