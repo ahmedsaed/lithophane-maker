@@ -2,13 +2,19 @@
   "name": "lithophane-cube-maker",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ahmedsaed/lithophane-maker.git"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "coupons": "vite-node scripts/export-coupons.ts --"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",

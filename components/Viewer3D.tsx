@@ -6,7 +6,7 @@ import { OrbitControls, GizmoHelper, GizmoViewport } from '@react-three/drei';
 import { ACESFilmicToneMapping } from 'three';
 import { useStore } from '@/lib/store';
 import { imageDataToHeightMap, cropHeightMap } from '@/lib/image/toHeightmap';
-import { buildAllParts, explodeVector } from '@/lib/geometry/assembly';
+import { buildAllParts, explodeVector, fillBlankPanels } from '@/lib/geometry/assembly';
 import { PART_COLORS } from '@/lib/geometry/constants';
 import { initManifold, isManifoldReady } from '@/lib/geometry/manifoldInit';
 import type { HeightMap, PanelSlot } from '@/lib/geometry/types';
@@ -35,7 +35,8 @@ function Parts() {
       }
     });
     try {
-      return buildAllParts(heightMaps, params, params.previewResolution);
+      // Empty slots show blank panels so the preview is always a complete cube.
+      return buildAllParts(fillBlankPanels(heightMaps).heightMaps, params, params.previewResolution);
     } catch (err) {
       console.error('Geometry build failed', err);
       return [];

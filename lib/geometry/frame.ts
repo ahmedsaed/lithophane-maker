@@ -1,98 +1,115 @@
 import type { BufferGeometry } from 'three';
 import type { Params } from './types';
-import { cubeLayout } from './layout';
+import { cubeLayout, type CubeLayout } from './layout';
 import {
-  mBox,
-  mUnionAll, mSubtract, mUnion,
-  manifoldToGeometry,
+  mBox, mCylinderZ,
+  mUnionAll, mSubtract,
+  manifoldToGeometry, withManifoldScope,
+  type Manifold,
 } from './mCsg';
-import { buildBase } from './base';
-import { chamferCutters } from './chamfer';
 
 const eps = 0.02;
+const guideDepth = 2;
 
-export function buildFrame(params: Params): BufferGeometry {
-  const L = cubeLayout(params);
-  const { half, halfZ, wallHeight, t, clear, engage, cornerReach, grooveCenter, tabHeight } = L;
+/**
+ * Rails along each face between the posts, from z0 to z1, reaching from the
+ * cube face in to `innerFace`. The frame's bottom rails reach past the panel
+ * (outer wall + inner wall, with the groove cut by panelSlotCutters); the lid's
+ * are an outer skirt only, since the top panel overlaps the side-panel tops.
+ */
+export function faceRails(L: CubeLayout, z0: number, z1: number, innerFace = L.railInner): Manifold[] {
+  const { half } = L;
+  const railInner = innerFace;
+  const inner = half - L.cornerReach;
+  const len = 2 * (inner + eps); // overlap the posts so the union fuses
+  const depth = half - railInner;
+  const mid = (railInner + half) / 2;
+  const h = z1 - z0;
+  const zc = (z0 + z1) / 2;
+  return [
+    mBox(len, depth, h, 0, mid, zc),
+    mBox(len, depth, h, 0, -mid, zc),
+    mBox(depth, len, h, mid, 0, zc),
+    mBox(depth, len, h, -mid, 0, zc),
+  ];
+}
 
-  // ── STEP 1: corner posts ────────────────────────────────────────────────────
-  // Posts span the full wall height (−halfZ → +halfZ): the lid caps the top and
-  // the fused base ring caps the bottom, so there is no floor to start above.
-  const postH = wallHeight;
-  const posts = L.corners.map(([sx, sy]) =>
-    mBox(cornerReach, cornerReach, postH,
-         sx * (half - cornerReach / 2),
-         sy * (half - cornerReach / 2),
-         0),
-  );
+/**
+ * Everything cut to receive the panels between z0 and z1: the vertical post
+ * grooves, the inner-corner pockets and (with `railSlots`) the horizontal panel
+ * slots through the rails. Cutters run eps past z0/z1 so no face is coplanar
+ * with the solid.
+ */
+export function panelSlotCutters(L: CubeLayout, z0: number, z1: number, railSlots = true): Manifold[] {
+  const { t, clear, engage, grooveCenter } = L;
+  const slotW = t + 2 * clear;
+  const slotD = engage + clear;
+  const grooveD = slotD + guideDepth;
+  const h = z1 - z0 + 2 * eps;
+  const zc = (z0 + z1) / 2;
+  const tools: Manifold[] = [];
 
-  let frame = mUnionAll(posts);
-
-  // ── STEP 2: groove cutters ─────────────────────────────────────────────────
-  const slotW      = t + 2 * clear;
-  const slotD      = engage + clear;
-  // Run the full post height plus eps past both ends so no cutter face is
-  // coplanar with a post face — this is critical for manifold output.
-  const grooveH    = wallHeight + 2 * eps;
-  const grooveZ    = 0;
-  const guideDepth = 2;
-  const grooveD    = slotD + guideDepth;
-
-  const tools = [];
-
-  // ±X face slots
+  // Vertical grooves in the posts, one per panel edge.
   for (const sx of [1, -1] as const) {
     for (const sy of [1, -1] as const) {
-      const gy = sy * (grooveCenter - guideDepth / 2);
-      tools.push(mBox(slotW, grooveD, grooveH, sx * L.panelOffset, gy, grooveZ));
-    }
-  }
-  // ±Y face slots
-  for (const sy of [1, -1] as const) {
-    for (const sx of [1, -1] as const) {
-      const gx = sx * (grooveCenter - guideDepth / 2);
-      tools.push(mBox(grooveD, slotW, grooveH, gx, sy * L.panelOffset, grooveZ));
+      const g = grooveCenter - guideDepth / 2;
+      tools.push(mBox(slotW, grooveD, h, sx * L.panelOffset, sy * g, zc)); // ±X faces
+      tools.push(mBox(grooveD, slotW, h, sx * g, sy * L.panelOffset, zc)); // ±Y faces
     }
   }
 
   // Inner-corner removal — size grooveD+eps so faces don't coincide with slots.
   const gi = grooveCenter - guideDepth / 2;
   for (const [sx, sy] of L.corners) {
-    tools.push(mBox(grooveD + eps, grooveD + eps, grooveH, sx * gi, sy * gi, grooveZ));
+    tools.push(mBox(grooveD + eps, grooveD + eps, h, sx * gi, sy * gi, zc));
   }
 
-  // Snap grooves — 0.5 mm recesses in the inner corner pocket walls that receive
-  // the lid tab ridges for a click-lock fit when the lid is pressed down.
-  // Position matches ridgeZ in lidFrame.ts: halfZ − tabHeight + ridgeSize.
-  const ridgeSize       = 0.5;
-  const ridgeProtrusion = ridgeSize * 0.2;                     // matches lidFrame.ts
-  const ridgeH          = ridgeProtrusion * 2 / Math.sqrt(3);  // equilateral height
-  const ridgeW          = slotD * 0.5;
-  const outerEdgeSnap   = gi + grooveD / 2;
-  const snapZ           = halfZ - tabHeight + ridgeSize;  // centre Z, matches ridgeZ in lidFrame.ts
+  if (!railSlots) return tools;
+  // Panel slots through the rails, spanning the panel width plus clearance.
+  const span = L.sidePanelW + 2 * clear;
+  for (const s of [1, -1] as const) {
+    tools.push(mBox(span, slotW, h, 0, s * L.panelOffset, zc));
+    tools.push(mBox(slotW, span, h, s * L.panelOffset, 0, zc));
+  }
+  return tools;
+}
 
+export function buildFrame(params: Params): BufferGeometry {
+  return withManifoldScope(() => buildFrameScoped(params));
+}
+
+function buildFrameScoped(params: Params): BufferGeometry {
+  const L = cubeLayout(params);
+  const { half, cornerReach, bottomThickness, postTop } = L;
+  const floorTop = -half + bottomThickness;
+  const railTop = -half + cornerReach; // bottom band matches the post width
+
+  // Corner posts from the floor top to postTop, where the lid sits. They and
+  // the rails reach eps down into the floor so the union fuses one body.
+  const postH = postTop - floorTop + eps;
+  const postCenterZ = (postTop + floorTop - eps) / 2;
+  const posts = L.corners.map(([sx, sy]) =>
+    mBox(cornerReach, cornerReach, postH,
+         sx * (half - cornerReach / 2),
+         sy * (half - cornerReach / 2),
+         postCenterZ),
+  );
+  const floor = mBox(L.C, L.C, bottomThickness, 0, 0, -half + bottomThickness / 2);
+  const frame = mUnionAll([...posts, floor, ...faceRails(L, floorTop - eps, railTop)]);
+
+  const tools = panelSlotCutters(L, floorTop, postTop);
+
+  // Peg / magnet holes in the post tops, centred in the solid outer corner.
   for (const [sx, sy] of L.corners) {
-    // Groove bounding box of the equilateral ridge + eps clearance
-    tools.push(mBox(ridgeProtrusion + eps, ridgeW + 2 * eps, ridgeH + 2 * eps,
-      sx * (outerEdgeSnap + (ridgeProtrusion + eps) / 2), sy * grooveCenter, snapZ));
-    tools.push(mBox(ridgeW + 2 * eps, ridgeProtrusion + eps, ridgeH + 2 * eps,
-      sx * grooveCenter, sy * (outerEdgeSnap + (ridgeProtrusion + eps) / 2), snapZ));
+    tools.push(mCylinderZ(L.attachHoleD / 2, 2 * L.postHoleDepth,
+      sx * L.attachOffset, sy * L.attachOffset, postTop, 48));
   }
 
-  frame = mSubtract(frame, mUnionAll(tools));
-
-  // ── STEP 3: fused base ring ────────────────────────────────────────────────
-  // A mirror of the lid, permanently fused below the posts. Closes the bottom
-  // and accepts a slide-in bottom lithophane panel.
-  frame = mUnion(frame, buildBase(L));
-
-  // ── STEP 4: edge chamfers ──────────────────────────────────────────────────
-  // Bevel the exterior frame edge around each panel so it slopes into the panel.
-  // Frame owns the side panels' left/right (posts) + bottom (base lip) borders and
-  // the bottom panel's borders, so it subtracts the four side cutters + the bottom.
-  if (params.chamfer) {
-    frame = mSubtract(frame, mUnionAll(chamferCutters(L, -1)));
+  // Cable / USB holes
+  for (const hole of params.cableHoles) {
+    const r = Math.max(0.5, hole.diameter / 2);
+    tools.push(mCylinderZ(r, bottomThickness + 2 * eps, hole.x, hole.y, -half + bottomThickness / 2));
   }
 
-  return manifoldToGeometry(frame);
+  return manifoldToGeometry(mSubtract(frame, mUnionAll(tools)));
 }

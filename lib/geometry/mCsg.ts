@@ -5,6 +5,33 @@ import { getManifold } from './manifoldInit';
 
 export type { Manifold };
 
+// Manifold objects live in WASM memory and are never garbage-collected. Every
+// manifold created by these helpers is recorded in the active scope and freed
+// when the scope ends, so rebuilding parts on each parameter change doesn't
+// leak until the 4 GB WASM heap is exhausted.
+let scope: Manifold[] | null = null;
+
+function track(m: Manifold): Manifold {
+  scope?.push(m);
+  return m;
+}
+
+/**
+ * Run `fn` and free every manifold the helpers created during it. Results must
+ * be converted (e.g. with manifoldToGeometry) before the scope ends.
+ */
+export function withManifoldScope<T>(fn: () => T): T {
+  const outer = scope;
+  const mine: Manifold[] = [];
+  scope = mine;
+  try {
+    return fn();
+  } finally {
+    scope = outer;
+    for (const m of mine) m.delete();
+  }
+}
+
 /** Convert a manifold result to a Three.js BufferGeometry. */
 export function manifoldToGeometry(m: Manifold): BufferGeometry {
   const mesh = m.getMesh();
@@ -25,6 +52,20 @@ export function manifoldToGeometry(m: Manifold): BufferGeometry {
   return geom;
 }
 
+/** Convert an indexed Three.js geometry (e.g. a lithophane panel) to a manifold. */
+export function geometryToManifold(g: BufferGeometry): Manifold {
+  const { Manifold, Mesh } = getManifold();
+  const index = g.getIndex();
+  if (!index) throw new Error('geometryToManifold requires an indexed geometry');
+  const mesh = new Mesh({
+    numProp: 3,
+    vertProperties: Float32Array.from(g.getAttribute('position').array as ArrayLike<number>),
+    triVerts: Uint32Array.from(index.array as ArrayLike<number>),
+  });
+  mesh.merge();
+  return track(new Manifold(mesh));
+}
+
 /** Axis-aligned box of size (sx,sy,sz) centred at the origin, then translated. */
 export function mBox(
   sx: number,
@@ -35,7 +76,7 @@ export function mBox(
   cz = 0,
 ): Manifold {
   const { Manifold } = getManifold();
-  return Manifold.cube([sx, sy, sz], true).translate(cx, cy, cz);
+  return track(track(Manifold.cube([sx, sy, sz], true)).translate(cx, cy, cz));
 }
 
 /**
@@ -52,9 +93,8 @@ export function mRotBox(
   cz = 0,
 ): Manifold {
   const { Manifold } = getManifold();
-  return Manifold.cube([sx, sy, sz], true)
-    .rotate([0, 0, angleDeg])
-    .translate(cx, cy, cz);
+  const rotated = track(track(Manifold.cube([sx, sy, sz], true)).rotate([0, 0, angleDeg]));
+  return track(rotated.translate(cx, cy, cz));
 }
 
 /** Z-aligned cylinder centred at the origin then translated. */
@@ -67,7 +107,21 @@ export function mCylinderZ(
   segments = 32,
 ): Manifold {
   const { Manifold } = getManifold();
-  return Manifold.cylinder(height, radius, radius, segments, true).translate(cx, cy, cz);
+  return track(track(Manifold.cylinder(height, radius, radius, segments, true)).translate(cx, cy, cz));
+}
+
+/** Z-aligned truncated cone (radius rBottom at −height/2, rTop at +height/2), centred then translated. */
+export function mFrustumZ(
+  rBottom: number,
+  rTop: number,
+  height: number,
+  cx = 0,
+  cy = 0,
+  cz = 0,
+  segments = 32,
+): Manifold {
+  const { Manifold } = getManifold();
+  return track(track(Manifold.cylinder(height, rBottom, rTop, segments, true)).translate(cx, cy, cz));
 }
 
 /**
@@ -81,20 +135,29 @@ export function mExtrudePrism(
 ): Manifold {
   const { Manifold, CrossSection } = getManifold();
   const cs = new CrossSection([points]);
-  let solid = Manifold.extrude(cs, depth, 0, 0, [1, 1], true);
-  if (mat4) solid = solid.transform(mat4);
+  let solid = track(Manifold.extrude(cs, depth, 0, 0, [1, 1], true));
+  cs.delete();
+  if (mat4) solid = track(solid.transform(mat4));
   return solid;
 }
 
 export function mUnion(a: Manifold, b: Manifold): Manifold {
-  return a.add(b);
+  return track(a.add(b));
 }
 
 export function mSubtract(a: Manifold, b: Manifold): Manifold {
-  return a.subtract(b);
+  return track(a.subtract(b));
+}
+
+export function mIntersect(a: Manifold, b: Manifold): Manifold {
+  return track(a.intersect(b));
+}
+
+export function mTranslate(a: Manifold, x: number, y: number, z: number): Manifold {
+  return track(a.translate(x, y, z));
 }
 
 export function mUnionAll(ms: Manifold[]): Manifold {
   const { Manifold } = getManifold();
-  return Manifold.union(ms);
+  return track(Manifold.union(ms));
 }

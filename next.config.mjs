@@ -7,6 +7,8 @@ const __dirname = path.dirname(__filename);
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
+  // Export pages as <route>/index.html so /guide works on any static host.
+  trailingSlash: true,
   images: { unoptimized: true },
   reactStrictMode: true,
   webpack(config) {
