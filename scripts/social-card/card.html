@@ -18,7 +18,7 @@
 <html><head><meta charset="utf-8">
 <style>
   html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #0f1115; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
-  .glow { position: absolute; right: 60px; top: 40px; width: 620px; height: 560px; background: radial-gradient(closest-side, rgba(247, 180, 90, 0.22), rgba(247, 180, 90, 0) 75%); }
+  .glow { position: absolute; right: 60px; top: 40px; width: 620px; height: 560px; background: radial-gradient(closest-side, rgba(255, 246, 228, 0.16), rgba(255, 246, 228, 0) 75%); }
   canvas#gl { position: absolute; right: 0; top: 0; }
   .text { position: absolute; left: 72px; top: 0; height: 630px; width: 560px; display: flex; flex-direction: column; justify-content: center; }
   h1 { margin: 0; color: #e6e9ef; font-size: 64px; line-height: 1.05; font-weight: 700; letter-spacing: -0.01em; }
@@ -41,8 +41,10 @@
 import * as THREE from 'three';
 import { STLLoader } from './jsm/STLLoader.js';
 
-// Lit-lithophane palette: thick (dark) to thin (bright), warm light through white PLA.
-const STOPS = [[0, [38, 18, 6]], [0.45, [150, 78, 30]], [0.8, [244, 186, 112]], [1, [255, 236, 200]]];
+// Lit-lithophane palette for white PLA: thick areas near black, thin areas near
+// white. Nearly neutral grey, with only a slight warm cast in the brightest
+// areas from a warm-white bulb, as a real lit lithophane looks.
+const STOPS = [[0, [16, 16, 17]], [0.45, [112, 110, 107]], [0.8, [214, 210, 202]], [1, [255, 249, 236]]];
 function warm(v) {
   v = Math.max(0, Math.min(1, v));
   for (let i = 1; i < STOPS.length; i++) {
