@@ -97,6 +97,13 @@ h1 {
   object-fit: cover;
 }
 
+/* A cropped image is sized and offset inline to show just the crop. */
+.slot img.cropped {
+  position: absolute;
+  max-width: none;
+  object-fit: fill;
+}
+
 .slot .label {
   position: absolute;
   bottom: 0;

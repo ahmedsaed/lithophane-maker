@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
-import { PANEL_SLOTS, type PanelSlot } from '@/lib/geometry/types';
+import { PANEL_SLOTS, type CropRect, type PanelSlot } from '@/lib/geometry/types';
 import CropModal from './CropModal';
 
 const LABELS: Record<PanelSlot, string> = {
@@ -12,6 +12,26 @@ const LABELS: Record<PanelSlot, string> = {
   right: 'Right',
   top: 'Top',
 };
+
+/**
+ * Show only the cropped region in the square slot, matching the panel. The crop
+ * is a normalized rectangle that is square in pixels, so scaling the image by
+ * 1/w × 1/h and shifting it by the crop's origin fills the slot with exactly
+ * that region. Without a crop, `object-fit: cover` shows the centre, as the
+ * panel does.
+ */
+function cropStyle(crop: CropRect | undefined): { className?: string; style?: React.CSSProperties } {
+  if (!crop) return {};
+  return {
+    className: 'cropped',
+    style: {
+      width: `${100 / crop.w}%`,
+      height: `${100 / crop.h}%`,
+      left: `${(-100 * crop.x) / crop.w}%`,
+      top: `${(-100 * crop.y) / crop.h}%`,
+    },
+  };
+}
 
 function Slot({ slot, onCrop }: { slot: PanelSlot; onCrop: (slot: PanelSlot) => void }) {
   const data = useStore((s) => s.slots[slot]);
@@ -27,7 +47,7 @@ function Slot({ slot, onCrop }: { slot: PanelSlot; onCrop: (slot: PanelSlot) => 
       {data ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={data.thumbnailUrl} alt={LABELS[slot]} />
+          <img src={data.thumbnailUrl} alt={LABELS[slot]} {...cropStyle(data.crop)} />
           <button
             className="crop-btn"
             onClick={(e) => {
