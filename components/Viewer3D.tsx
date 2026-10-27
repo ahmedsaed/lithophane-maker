@@ -24,7 +24,6 @@ function Parts() {
       if (d) {
         let hm = imageDataToHeightMap(d.imageData, {
           invert: params.invert,
-          grayscaleMode: params.grayscaleMode,
           brightness: params.lithoBrightness,
           contrast: params.lithoContrast,
           autoContrast: params.lithoAutoContrast,

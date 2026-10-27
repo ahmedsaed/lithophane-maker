@@ -71,6 +71,15 @@ export interface CubeLayout {
 
 /** Gap above the top panel inside the lid recess (mm). */
 export const LID_RECESS_GAP = 0.2;
+/** Frame width per mm of nominal post size (the ratio the original posts were drawn at). */
+export const FRAME_PER_POST = 1.8;
+/**
+ * Most samples across one exported panel. Keeps a panel's mesh small enough to
+ * build and download in a browser; validateParams warns when it limits detail.
+ */
+export const MAX_PANEL_CELLS = 1000;
+/** Thickness of the frame's solid floor (mm). Hidden inside the cube. */
+export const FLOOR_THICKNESS = 3;
 /** Wall on the inner side of the top and bottom panel grooves (mm). */
 export const RAIL_INNER_WALL = 2;
 /** Extra diameter and depth given to magnet holes so magnets press or glue in (mm). */
@@ -84,12 +93,14 @@ export const MIN_ATTACH_WALL = 1.2;
 export function cubeLayout(params: Params): CubeLayout {
   const C = params.cubeSize;
   const half = C / 2;
-  const p = params.postSize;
-  const t = params.panelThickness;
+  // The frame width is the visible band; the nominal post size (which sets how
+  // deep the panels sit behind the faces) is derived from it.
+  const cornerReach = params.frameWidth;
+  const p = cornerReach / FRAME_PER_POST;
+  // A panel is as thick as its darkest point; its flat border is the same.
+  const t = params.lithoMax;
   const clear = params.grooveClearance;
   const engage = Math.min(params.tongueWidth, p * 0.7);
-
-  const cornerReach = Math.min(p * 1.8, C * 0.35);
 
   // Recess the top panel exactly as far below the top face as the side panels
   // sit behind theirs (p/2 − t/2), so all five faces look the same.
@@ -149,7 +160,7 @@ export function cubeLayout(params: Params): CubeLayout {
     clear,
     engage,
     cornerReach,
-    bottomThickness: params.bottomThickness,
+    bottomThickness: FLOOR_THICKNESS,
     panelOffset,
     sidePanelW,
     sidePanelH,

@@ -146,7 +146,7 @@ export function buildLithoStepsCoupon(params: Params): BufferGeometry {
   const g = buildLithophanePanel({
     width,
     height,
-    thickness: params.panelThickness,
+    thickness: params.lithoMax,
     tongueWidth: 3,
     lithoMin: params.lithoMin,
     lithoMax: params.lithoMax,

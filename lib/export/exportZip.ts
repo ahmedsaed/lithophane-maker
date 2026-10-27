@@ -6,6 +6,7 @@ import { buildLidForPrint } from '../geometry/lidFrame';
 import { buildPanelForPrint, buildTopPanelForPrint, fillBlankPanels, panelFileName } from '../geometry/assembly';
 import { geometryToStlBlob } from './exportStl';
 import type { Coupon } from '../geometry/coupons';
+import { MAX_PANEL_CELLS } from '../geometry/layout';
 
 const README = `Lithophane Cube — printable parts
 
@@ -53,7 +54,7 @@ export async function exportPartsZip(
   onProgress?: (msg: string) => void,
 ): Promise<void> {
   const zip = new JSZip();
-  const res = params.exportResolution;
+  const res = MAX_PANEL_CELLS;
 
   onProgress?.('Building frame…');
   zip.file('frame.stl', geometryToStlBlob(buildFrame(params)));

@@ -161,7 +161,7 @@ export default function GuidePage() {
           tight="it needs force or stops before the bottom."
           loose="it drops in and rattles."
         />
-        <p><strong>Set:</strong> <Setting>Panel → Groove clearance</Setting> to the tightest post that passes.</p>
+        <p><strong>Set:</strong> <Setting>Fit → Groove clearance</Setting> to the tightest post that passes.</p>
 
         <h3>Lid fit (Peg clearance), press-fit lids</h3>
         <p>
@@ -183,7 +183,7 @@ export default function GuidePage() {
           the light, so it has to keep gripping.
         </p>
         <p>
-          <strong>Set:</strong> <Setting>Lid → Peg clearance</Setting> to that one. If even
+          <strong>Set:</strong> <Setting>Fit → Peg clearance</Setting> to that one. If even
           the tightest is loose, raise <Setting>Peg depth</Setting>.
         </p>
 
@@ -264,7 +264,11 @@ export default function GuidePage() {
             ['Everything looks too dark or too washed out', <>Adjust <Setting>Gamma</Setting>: lower for deeper shadows, higher for brighter overall</>],
           ]}
         />
-        <p>Max thickness can’t exceed <Setting>Panel thickness</Setting>. The maker warns you if it does.</p>
+        <p>
+          <Setting>Max thickness</Setting> is also the panel’s own thickness. The thicker it is,
+          the more light it blocks and the wider the frame needs to be, so the slider stops
+          before the groove walls would get too thin.
+        </p>
 
         <h3>Choosing a light</h3>
         <ul>

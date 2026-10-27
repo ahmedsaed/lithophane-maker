@@ -29,13 +29,14 @@ export type GrayscaleMode = 'rec601' | 'rec709' | 'average' | 'luminosity';
 export interface Params {
   /** Outer edge length of the cube. */
   cubeSize: number;
-  /** Nominal corner-post size; also drives the corner reach/ramp. */
-  postSize: number;
-  /** Total plate / tongue thickness of a side panel. */
-  panelThickness: number;
+  /**
+   * Width of the frame band visible around every panel window (mm). The posts,
+   * the bottom rail and the lid are all this wide; post internals derive from it.
+   */
+  frameWidth: number;
   /** Minimum (brightest) lithophane thickness. */
   lithoMin: number;
-  /** Maximum (darkest) lithophane thickness. */
+  /** Maximum (darkest) lithophane thickness; also the panel's thickness, border included. */
   lithoMax: number;
   /** Per-side slide clearance between tongue and groove. */
   grooveClearance: number;
@@ -47,10 +48,6 @@ export interface Params {
   relief: ReliefDirection;
   /** Longest-side sample count for preview meshes. */
   previewResolution: number;
-  /** Longest-side sample count for exported meshes. */
-  exportResolution: number;
-  /** Thickness of the solid frame bottom. */
-  bottomThickness: number;
   /** Lid attachment: printed pegs pressed into the posts, or glued-in magnets. */
   lidAttach: LidAttach;
   /** Press-fit peg length below the lid (mm). Longer pegs grip harder. */
@@ -61,15 +58,13 @@ export interface Params {
   magnetDiameter: number;
   /** Disc magnet height (mm). */
   magnetHeight: number;
-  /** Physical resolution: how many mm each source image pixel maps to on the panel. */
+  /** Exported detail: mm of panel per image sample. Exports honour it up to MAX_PANEL_CELLS. */
   mmPerPixel: number;
   /** Cable/USB holes in the solid bottom. */
   cableHoles: CableHole[];
 
   // --- Lithophane image-quality controls ---
 
-  /** Grayscale conversion method. */
-  grayscaleMode: GrayscaleMode;
   /** Brightness offset applied to luma before thickness mapping [-0.5, 0.5]. */
   lithoBrightness: number;
   /** Contrast multiplier applied to luma before thickness mapping [0.5, 2.0]. */
@@ -78,8 +73,9 @@ export interface Params {
   lithoAutoContrast: boolean;
   /**
    * Gamma exponent applied to brightness before the linear thickness mapping.
-   * Compensates for Beer-Lambert non-linearity of light through PLA.
-   * 0.45 ≈ inverse of sRGB gamma; 1.0 = linear (previous behaviour).
+   * Compensates for light fading exponentially through the plastic
+   * (Beer–Lambert), which depends on the filament's translucency.
+   * 0.45 ≈ inverse of sRGB gamma; 1.0 = linear.
    */
   lithoGamma: number;
   /** Unsharp mask amount [0, 2]. 0 = off. */

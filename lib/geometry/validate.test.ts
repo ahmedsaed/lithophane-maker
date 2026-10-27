@@ -31,16 +31,15 @@ function randomParams(rand: () => number): Params {
   const pick = <T,>(xs: T[]) => xs[Math.floor(rand() * xs.length)];
   const range = (min: number, max: number, step: number) =>
     min + Math.round((rand() * (max - min)) / step) * step;
-  const postSize = range(4, 16, 0.5);
+  const frameWidth = range(7.2, 28.8, 0.1);
   const grooveClearance = range(0.1, 0.6, 0.05);
-  const tMax = Math.max(0.8, Math.min(6, maxPanelThickness(postSize, grooveClearance)));
+  // The same ceiling the Max thickness slider uses.
+  const maxTop = Math.min(5, Math.max(1.5, maxPanelThickness(frameWidth, grooveClearance)));
   return {
     ...DEFAULT_PARAMS,
     cubeSize: range(40, 200, 1),
-    postSize,
+    frameWidth,
     grooveClearance,
-    panelThickness: range(0.8, tMax, 0.1),
-    bottomThickness: range(1.5, 10, 0.5),
     lidAttach: pick(['pressfit', 'magnet'] as const),
     pegDepth: range(3, 15, 0.5),
     pegClearance: range(0, 0.3, 0.05),
@@ -48,7 +47,7 @@ function randomParams(rand: () => number): Params {
     magnetHeight: pick([1, 1.5, 2, 3, 4, 5]),
     relief: pick(['inward', 'outward'] as const),
     lithoMin: range(0.4, 1.5, 0.05),
-    lithoMax: range(1.5, 5, 0.1),
+    lithoMax: range(1.5, maxTop, 0.1),
     cableHoles: pick([[], [{ diameter: range(1, 40, 1), x: 0, y: 0 }]]),
   };
 }
@@ -153,8 +152,8 @@ describe('validateParams', () => {
     expect(validateParams(DEFAULT_PARAMS)).toEqual([]);
   });
 
-  it('rejects panels too thick for the posts', () => {
-    const issues = validateParams({ ...DEFAULT_PARAMS, postSize: 4, panelThickness: 3 });
+  it('rejects panels too thick for the frame', () => {
+    const issues = validateParams({ ...DEFAULT_PARAMS, frameWidth: 7.2, lithoMax: 3 });
     expect(issues.some((i) => i.severity === 'error')).toBe(true);
   });
 
@@ -163,8 +162,8 @@ describe('validateParams', () => {
     expect(issues.some((i) => i.severity === 'error')).toBe(true);
   });
 
-  it('rejects posts too large for the cube', () => {
-    const issues = validateParams({ ...DEFAULT_PARAMS, cubeSize: 41, postSize: 14.5, panelThickness: 5.9, grooveClearance: 0.45 });
+  it('rejects a frame too wide for the cube', () => {
+    const issues = validateParams({ ...DEFAULT_PARAMS, cubeSize: 50, frameWidth: 26 });
     expect(issues.some((i) => i.severity === 'error')).toBe(true);
   });
 
@@ -177,9 +176,15 @@ describe('validateParams', () => {
     expect(validateParams({ ...DEFAULT_PARAMS, lidAttach: 'magnet' })).toEqual([]);
   });
 
-  it('warns when the relief would be clipped', () => {
-    const issues = validateParams({ ...DEFAULT_PARAMS, lithoMax: 4 });
+  it('warns about coarse resolution', () => {
+    const issues = validateParams({ ...DEFAULT_PARAMS, mmPerPixel: 0.5 });
     expect(issues.map((i) => i.severity)).toEqual(['warning']);
+  });
+
+  it('says when a big cube limits the resolution, and warns about file size', () => {
+    const messages = validateParams({ ...DEFAULT_PARAMS, cubeSize: 200, mmPerPixel: 0.1 }).map((i) => i.message);
+    expect(messages.some((m) => m.includes('limited to'))).toBe(true);
+    expect(messages.some((m) => m.includes('MB'))).toBe(true);
   });
 });
 
@@ -204,10 +209,10 @@ describe('assembled geometry', () => {
       checked++;
       const problems = assemblyProblems(params);
       if (problems.length) {
-        const { cubeSize, postSize, panelThickness, grooveClearance, bottomThickness, relief, cableHoles,
+        const { cubeSize, frameWidth, lithoMax, grooveClearance, relief, cableHoles,
           lidAttach, pegDepth, pegClearance, magnetDiameter, magnetHeight } = params;
         failures.push(
-          JSON.stringify({ cubeSize, postSize, panelThickness, grooveClearance, bottomThickness, relief, cableHoles,
+          JSON.stringify({ cubeSize, frameWidth, lithoMax, grooveClearance, relief, cableHoles,
             lidAttach, pegDepth, pegClearance, magnetDiameter, magnetHeight }) +
           '\n    ' + problems.join('\n    '),
         );

@@ -8,6 +8,7 @@ import { imageDataToHeightMap, cropHeightMap } from '@/lib/image/toHeightmap';
 import { exportCouponsZip, exportPartsZip } from '@/lib/export/exportZip';
 import { buildClearanceSweep, buildTestKit } from '@/lib/geometry/coupons';
 import { GUIDE_URL } from '@/components/GitHubLink';
+import { MAX_PANEL_CELLS } from '@/lib/geometry/layout';
 import { geometryToStlBlob } from '@/lib/export/exportStl';
 import { buildFrame } from '@/lib/geometry/frame';
 import { buildLidForPrint } from '@/lib/geometry/lidFrame';
@@ -24,6 +25,12 @@ const SLOT_LABELS: Record<PanelSlot, string> = {
 
 const SLOT_ORDER: PanelSlot[] = ['front', 'back', 'left', 'right', 'top'];
 
+/**
+ * Longest side photos are decoded at for export: twice the mesh limit, so a
+ * cropped photo still has a pixel for every sample of the panel.
+ */
+const EXPORT_IMAGE_MAX_SIDE = 2 * MAX_PANEL_CELLS;
+
 export default function ExportPanel() {
   const slots = useStore((s) => s.slots);
   const params = useStore((s) => s.params);
@@ -32,7 +39,6 @@ export default function ExportPanel() {
 
   const imageProcessingOpts = {
     invert: params.invert,
-    grayscaleMode: params.grayscaleMode,
     brightness: params.lithoBrightness,
     contrast: params.lithoContrast,
     autoContrast: params.lithoAutoContrast,
@@ -42,7 +48,7 @@ export default function ExportPanel() {
   async function buildSlotHeightMap(slot: PanelSlot): Promise<HeightMap | null> {
     const d = slots[slot];
     if (!d) return null;
-    const img = await fileToImageData(d.file, params.exportResolution);
+    const img = await fileToImageData(d.file, EXPORT_IMAGE_MAX_SIDE);
     let hm = imageDataToHeightMap(img, imageProcessingOpts);
     if (d.crop) hm = cropHeightMap(hm, d.crop);
     return hm;
@@ -86,8 +92,8 @@ export default function ExportPanel() {
       const photo = await buildSlotHeightMap(slot);
       const hm = photo ?? BLANK_HEIGHTMAP;
       const geom = slot === 'top'
-        ? buildTopPanelForPrint(hm, params, params.exportResolution)
-        : buildPanelForPrint(slot, hm, params, params.exportResolution);
+        ? buildTopPanelForPrint(hm, params, MAX_PANEL_CELLS)
+        : buildPanelForPrint(slot, hm, params, MAX_PANEL_CELLS);
       const filename = panelFileName(slot, !photo);
       saveAs(geometryToStlBlob(geom), filename);
       setStatus(`Downloaded ${filename}`);

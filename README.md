@@ -30,18 +30,17 @@ hold them together. Put a light inside and all five pictures light up.
 - Five panels: front, back, left, right and top. Empty slots become plain
   panels that glow evenly, so you can mix photos with plain sides.
 - Crop each image to the square window it fills.
-- Image controls: brightness, contrast, auto-contrast, gamma, sharpening,
-  grayscale mode and invert.
+- Image controls: brightness, contrast, auto-contrast, sharpening and invert.
 
 **The cube**
-- Any size from 40 to 200 mm, with adjustable post size, panel thickness and
-  floor thickness.
+- Any size from 40 to 200 mm, with an adjustable frame width.
 - Every face is framed evenly on all four sides, and all five panels are the
   same square, so all five pictures look the same.
 - The lid attaches with **printed press-fit pegs** (no extra parts) or **disc
   magnets** pressed into the posts and lid.
 - A cable hole in the floor for the light's power lead, with adjustable size.
-- Lithophane thickness range and relief direction (outward or inward).
+- Lithophane controls for your filament: thickness range, gamma, which side
+  carries the texture, and resolution to match your nozzle.
 
 **Getting a good print**
 - A live 3D preview with an exploded view to see how the parts fit together.
