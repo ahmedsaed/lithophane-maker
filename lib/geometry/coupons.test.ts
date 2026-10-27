@@ -34,14 +34,18 @@ describe('test coupons', () => {
     });
   }
 
-  it('sweep coupons lose material as clearance and dot count grow', () => {
+  it('every sweep coupon is a different fit', () => {
     const sweep = buildClearanceSweep(DEFAULT_PARAMS);
     for (const prefix of ['groove-post-', 'lid-corner-peg-']) {
       const vols = sweep.filter((c) => c.name.startsWith(prefix)).map((c) => describeCoupon(c).volume);
       expect(vols).toHaveLength(SWEEP_CLEARANCES.length);
-      // Wider clearance (larger slot or thinner peg) and more pits both remove material.
-      for (let i = 1; i < vols.length; i++) expect(vols[i], prefix + i).toBeLessThan(vols[i - 1]);
+      // Each clearance changes the part (a wider slot moves the groove's inner
+      // wall, a looser peg is thinner), so no two coupons may be identical.
+      expect(new Set(vols.map((v) => v.toFixed(3))).size, prefix).toBe(vols.length);
     }
+    // Looser pegs only ever remove plastic, so that sweep must shrink steadily.
+    const pegs = sweep.filter((c) => c.name.startsWith('lid-corner-peg-')).map((c) => describeCoupon(c).volume);
+    for (let i = 1; i < pegs.length; i++) expect(pegs[i]).toBeLessThan(pegs[i - 1]);
   });
 
   it('magnet lids get no peg sweep', () => {

@@ -31,7 +31,7 @@ function randomParams(rand: () => number): Params {
   const pick = <T,>(xs: T[]) => xs[Math.floor(rand() * xs.length)];
   const range = (min: number, max: number, step: number) =>
     min + Math.round((rand() * (max - min)) / step) * step;
-  const frameWidth = range(7.2, 28.8, 0.1);
+  const frameWidth = range(8, 28.8, 0.1);
   const grooveClearance = range(0.1, 0.6, 0.05);
   // The same ceiling the Max thickness slider uses.
   const maxTop = Math.min(5, Math.max(1.5, maxPanelThickness(frameWidth, grooveClearance)));

@@ -1,5 +1,5 @@
 import type { Params } from './types';
-import { cubeLayout, FRAME_PER_POST, MAGNET_FIT, MAX_PANEL_CELLS, MIN_ATTACH_WALL, PEG_HOLE_EXTRA } from './layout';
+import { cubeLayout, MAGNET_FIT, MAX_PANEL_CELLS, MIN_ATTACH_WALL, OUTER_WALL, PEG_HOLE_EXTRA } from './layout';
 
 /** Thinnest wall we accept anywhere in a printed part (≈ 3 perimeters at 0.4 mm). */
 export const MIN_WALL = 1.2;
@@ -28,11 +28,12 @@ export interface ParamIssue {
 }
 
 /**
- * Largest Max thickness (= panel thickness) that still leaves MIN_WALL outside
- * each frame groove at this frame width.
+ * Largest Max thickness (= panel thickness) whose groove still leaves MIN_WALL
+ * of post behind it at this frame width. The wall in front of the groove is
+ * always OUTER_WALL.
  */
 export function maxPanelThickness(frameWidth: number, grooveClearance: number): number {
-  return frameWidth / FRAME_PER_POST - 2 * grooveClearance - 2 * MIN_WALL;
+  return frameWidth - OUTER_WALL - 2 * grooveClearance - MIN_WALL;
 }
 
 /** Below this, the picture looks pixelated (pixels per mm). */
@@ -53,14 +54,15 @@ export function validateParams(params: Params): ParamIssue[] {
   const error = (message: string) => issues.push({ severity: 'error', message });
   const warn = (message: string) => issues.push({ severity: 'warning', message });
 
-  // Material between each frame groove and the outer face of the post.
-  const grooveWall = L.p / 2 - L.t / 2 - L.clear;
-  if (grooveWall < MIN_WALL) {
+  // Each groove runs into its post from the outer wall; the post needs material
+  // left behind it, or the groove splits the post in two.
+  const behindGroove = L.cornerReach - OUTER_WALL - (L.t + 2 * L.clear);
+  if (behindGroove < MIN_WALL) {
     const maxT = maxPanelThickness(params.frameWidth, params.grooveClearance);
     error(
-      `The walls around the panel grooves are ${grooveWall.toFixed(2)} mm thick (minimum ${MIN_WALL} mm). ` +
-      (maxT > 0
-        ? `Reduce Max thickness to ${maxT.toFixed(1)} mm or less, or widen the frame.`
+      `The frame is too narrow for ${params.lithoMax} mm thick panels: the grooves would cut through the posts. ` +
+      (maxT >= 1.5
+        ? `Widen the frame or reduce Max thickness to ${maxT.toFixed(1)} mm or less.`
         : 'Widen the frame.'),
     );
   }
@@ -75,12 +77,13 @@ export function validateParams(params: Params): ParamIssue[] {
     error('Panels are too thick for the lid to hold them. Reduce Max thickness or widen the frame.');
   }
 
-  // Each panel's edge rides in a groove; once cornerReach hits its 0.35·C cap,
-  // the edges can reach the neighbouring panels at the corners.
+  // Each panel's edge rides in a groove inside its corner post. With the panel
+  // depth fixed by OUTER_WALL, a narrow post leaves the edges reaching into the
+  // neighbouring panels.
   const panelEdge = L.sidePanelW / 2 + L.clear;
   const neighbourInner = L.panelOffset - L.t / 2;
   if (panelEdge > neighbourInner) {
-    error('The frame is too wide for this cube size, so neighbouring panels collide at the corners. Narrow the frame or increase cube size.');
+    error('The frame is too narrow: neighbouring panels would collide at the corners. Widen the frame or reduce Max thickness.');
   }
 
   // Pegs and magnets live in the solid square at each post's outer corner.

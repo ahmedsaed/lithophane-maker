@@ -16,7 +16,6 @@ import type { Params, PanelSlot } from './types';
 export interface CubeLayout {
   C: number; // cube outer size
   half: number; // C/2
-  p: number; // nominal post size
   t: number; // side-panel thickness
   clear: number; // groove clearance per side
   engage: number; // how deep a tongue sits inside a groove
@@ -71,8 +70,14 @@ export interface CubeLayout {
 
 /** Gap above the top panel inside the lid recess (mm). */
 export const LID_RECESS_GAP = 0.2;
-/** Frame width per mm of nominal post size (the ratio the original posts were drawn at). */
-export const FRAME_PER_POST = 1.8;
+/**
+ * Wall in front of every panel groove (mm), between the panel and the cube's
+ * outer face — about 5–6 lines at 0.4 mm. Independent of frame width and panel
+ * thickness; at the defaults it matches the geometry the test prints used.
+ */
+export const OUTER_WALL = 2.4;
+/** Groove depth per mm of frame width, capped at `tongueWidth` (0.7 × the old post size). */
+export const ENGAGE_PER_FRAME = 0.7 / 1.8;
 /**
  * Most samples across one exported panel. Keeps a panel's mesh small enough to
  * build and download in a browser; validateParams warns when it limits detail.
@@ -93,18 +98,21 @@ export const MIN_ATTACH_WALL = 1.2;
 export function cubeLayout(params: Params): CubeLayout {
   const C = params.cubeSize;
   const half = C / 2;
-  // The frame width is the visible band; the nominal post size (which sets how
-  // deep the panels sit behind the faces) is derived from it.
+  // The frame width is the visible band around each window.
   const cornerReach = params.frameWidth;
-  const p = cornerReach / FRAME_PER_POST;
   // A panel is as thick as its darkest point; its flat border is the same.
   const t = params.lithoMax;
   const clear = params.grooveClearance;
-  const engage = Math.min(params.tongueWidth, p * 0.7);
+  // How far a panel's border reaches into its groove. Narrow frames get
+  // shallower grooves so the posts keep room for the peg or magnet.
+  const engage = Math.min(params.tongueWidth, cornerReach * ENGAGE_PER_FRAME);
 
-  // Recess the top panel exactly as far below the top face as the side panels
-  // sit behind theirs (p/2 − t/2), so all five faces look the same.
-  const lidLip = p / 2 - t / 2 - LID_RECESS_GAP;
+  // Every panel's outer face sits OUTER_WALL + clear behind its cube face,
+  // whatever the frame width or panel thickness, so the wall in front of each
+  // groove is always OUTER_WALL thick and all five faces look the same.
+  const panelOuter = half - OUTER_WALL - clear;
+  // The top panel is recessed just as far below the top face.
+  const lidLip = half - panelOuter - LID_RECESS_GAP;
   const lidRecess = t + LID_RECESS_GAP;
   const lidRing = lidLip + lidRecess;
   const lidThickness = cornerReach;
@@ -113,7 +121,7 @@ export function cubeLayout(params: Params): CubeLayout {
   const windowHalf = half - cornerReach;
   const panelEdge = windowHalf + engage;
 
-  const panelOffset = half - p / 2; // recessed inside the posts
+  const panelOffset = panelOuter - t / 2; // panel mid-plane, behind the outer wall
   // Square, centred on the window: the bottom border sits in the frame's bottom
   // groove and the top border in the lid's, `engage` deep like the side grooves.
   const sidePanelW = 2 * panelEdge;
@@ -127,7 +135,6 @@ export function cubeLayout(params: Params): CubeLayout {
 
   const railW = C - 2 * cornerReach; // post-inner-face to post-inner-face
 
-  const panelOuter = panelOffset + t / 2;
   // The top panel is the same square as the sides. Its corners rest on the
   // posts' corner supports, and the lid traps it from above.
   const topPanelW = sidePanelW;
@@ -155,7 +162,6 @@ export function cubeLayout(params: Params): CubeLayout {
   return {
     C,
     half,
-    p,
     t,
     clear,
     engage,

@@ -141,13 +141,13 @@ export default function ParamsPanel() {
           label="Frame width"
           unit=" mm"
           value={params.frameWidth}
-          min={7.2}
+          min={8}
           max={28.8}
           step={0.1}
           onChange={(v) =>
             set({ frameWidth: v, lithoMax: Math.min(params.lithoMax, lithoMaxCeiling(v, params.grooveClearance)) })
           }
-          description="The band around every picture: posts, bottom rail and lid."
+          description="The band around every picture: posts, bottom rail and lid. About 10 mm is the narrowest that leaves room for the pegs (14 mm for 6 mm magnets)."
         />
         <Slider
           label="Cable hole ⌀"
