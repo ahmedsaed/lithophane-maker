@@ -1,95 +1,159 @@
 # Lithophane Cube Maker
 
-> **Beta.** The geometry is checked by automated tests, but real-world fits
-> vary by printer. Print the test pieces (Export → Test prints) before a full
-> cube, and please report how it went. The **printing guide** is built into the app at `/guide`.
+**Turn five photos into a 3D-printable lithophane lamp.**
 
-A fully client-side web tool that turns **5 images** (4 sides + 1 top) into a
-3D-printable, backlit **lithophane cube**. Everything — image processing, mesh
-generation, 3D preview and STL export — runs in the browser. No backend.
+**Try it: [lithophane-maker.merope.dev](https://lithophane-maker.merope.dev)**
 
-A lithophane encodes an image as varying material thickness: dark pixels print
-thicker (block more light), light pixels print thinner. Backlit, the image
-appears.
+A lithophane is a thin plastic panel that shows a picture when light shines
+through it: darker parts of the image are printed thicker and block more light,
+lighter parts are thinner and glow. Lithophane Cube Maker builds a complete cube
+lamp from your photos: four side panels, a top panel, and a frame and lid that
+hold them together. Put a light inside and all five pictures light up.
 
-## The 7 printable parts
+> **Beta.** The parts are checked by automated tests, but every printer is a
+> little different. Start with the [printing guide](https://lithophane-maker.merope.dev/guide/),
+> which has you print a few small test pieces before the full cube, and
+> [let us know how it went](https://github.com/ahmedsaed/lithophane-maker/issues/new).
 
-| Part        | Description |
-|-------------|-------------|
-| `frame`     | Corner posts and bottom rails on a solid floor, grooved to hold each side panel's side and bottom edges. A peg or magnet hole in each post top. Cable/USB hole(s) in the floor for a light source. |
-| `side-*` ×4 | Side lithophane panels with a flat border that rides in the grooves. |
-| `top`       | Top lithophane panel, corners notched to clear the posts. |
-| `lid`       | The top band of the cube: a square frame on top with skirts that cover the side panels' top edges, so every face is framed on all four sides. The top panel sits in a recess underneath. |
+## Free, private and open source
 
-Assembly: slide the 4 side panels down into the corner grooves until they seat
-in the bottom groove → add a light
-source (cable through the floor hole) → lay the top panel on the side panels →
-press the lid onto the posts, trapping the top panel.
+- **Free.** Every feature, including all five panels, with no account,
+  watermark or paywall.
+- **Private.** Everything runs in your browser. Your photos are never uploaded
+  anywhere.
+- **Open source.** MIT-licensed, so you can use it, change it and build on it.
+  Contributions are welcome.
 
-The lid attaches in one of two ways (sidebar → Lid):
+## What it supports
 
-- **Press-fit** (fully printed): pegs under the lid press into holes in the
-  posts. Peg depth and clearance are adjustable.
-- **Magnets**: glue a disc magnet (default 6×3 mm) into each post top and
-  each lid corner.
+**Your images**
+- Five panels: front, back, left, right and top. Empty slots become plain
+  panels that glow evenly, so you can mix photos with plain sides.
+- Crop each image to the square window it fills.
+- Image controls: brightness, contrast, auto-contrast, gamma, sharpening,
+  grayscale mode and invert.
 
-## Tech stack
+**The cube**
+- Any size from 40 to 200 mm, with adjustable post size, panel thickness and
+  floor thickness.
+- Every face is framed evenly on all four sides, so all five pictures look the
+  same.
+- The lid attaches with **printed press-fit pegs** (no extra parts) or **glued
+  magnets**.
+- A cable hole in the floor for the light's power lead, with adjustable size.
+- Lithophane thickness range and relief direction (outward or inward).
 
-- **Next.js (App Router, TypeScript)** — static-exportable SPA (`output: 'export'`).
-- **Three.js** + **react-three-fiber** + **drei** — declarative 3D preview.
-- **manifold-3d** (WASM) — watertight boolean ops for grooves, peg/magnet holes and cable holes.
-- **zustand** — image slots + parametric state.
-- **jszip** + **file-saver** — bundle the STLs into one download.
+**Getting a good print**
+- A live 3D preview with an exploded view to see how the parts fit together.
+- A **[printing guide](https://lithophane-maker.merope.dev/guide/)** covering
+  printer setup, slicer settings and assembly.
+- **Test pieces**: small parts cut from the real cube that check groove fit,
+  lid fit and image brightness in minutes, instead of a day-long full print.
+- Warnings for settings that would produce parts that can't be printed or won't
+  fit together.
+- STL export, part by part or everything in one zip, already oriented for
+  printing.
 
-## Develop
+## How to use it
+
+1. **Add images** to the five slots and crop them.
+2. **Adjust** the cube size, lid type and image settings while watching the preview.
+3. **Print the test pieces** (Export → Test kit / Clearance sweep) and set
+   your clearances. The [guide](https://lithophane-maker.merope.dev/guide/)
+   walks you through it.
+4. **Download all** and print the parts. Panels print standing up.
+5. **Assemble**: slide the side panels into the frame, put the light inside,
+   lay the top panel on and press the lid down.
+
+### The parts
+
+| Part | What it is |
+|------|------------|
+| `frame` | The floor, corner posts and bottom rails, grooved to hold each side panel. A peg or magnet hole in each post top and a cable hole in the floor. |
+| `side-*` ×4 | The side lithophane panels. Their borders are hidden in the grooves. |
+| `top` | The top lithophane panel, with notched corners to clear the posts. |
+| `lid` | The top band of the cube. It frames the top panel, covers the side panels' top edges and traps the top panel in place. |
+
+---
+
+## Technical details
+
+### How it works
+
+Everything happens in the browser:
+
+1. **Image → height map** (`lib/image/`): each image is converted to grayscale,
+   adjusted (contrast, gamma, sharpening and so on) and cropped to the square
+   window.
+2. **Height map → panel** (`lib/geometry/lithophanePanel.ts`): a watertight
+   mesh whose thickness follows image brightness, with a flat border that rides
+   in the grooves. Gamma compensates for the non-linear way light dims through
+   plastic (Beer–Lambert).
+3. **Frame and lid** (`frame.ts`, `lidFrame.ts`): solid modelling with
+   [manifold-3d](https://github.com/elalish/manifold) (WebAssembly), which
+   guarantees watertight output. Every dimension comes from one shared layout
+   (`layout.ts`), so the parts always fit each other.
+4. **Export** (`lib/export/`): binary STLs, oriented for printing, zipped with
+   a README.
+
+### Tech stack
+
+- **Next.js** (App Router, TypeScript), exported as a static site (`output: 'export'`)
+- **Three.js**, **react-three-fiber** and **drei** for the 3D preview
+- **manifold-3d** (WASM) for watertight solid modelling
+- **zustand** for state, **jszip** and **file-saver** for downloads
+- **vitest** for tests
+
+### Develop
 
 ```bash
 npm install
-npm run dev     # http://localhost:3000
-npm test        # unit + geometry tests (vitest)
-npm run build   # static export to ./out
+npm run dev       # http://localhost:3000
+npm test          # unit + geometry tests
+npm run build     # static export to ./out
+npm run coupons   # write the test-piece STLs for the default settings to ./coupons
 ```
 
-## Project layout
+### Project layout
 
 ```
-app/                     Next.js pages + global styles
-components/               UI: uploader, params, 3D viewer, export
+app/
+  page.tsx              the maker
+  guide/page.tsx        the printing guide (/guide)
+components/             sidebar (uploads, crop, parameters, export) and 3D viewer
 lib/
-  image/                 image -> grayscale heightmap
-  geometry/              panel / frame / base mesh generation + layout + CSG
-  export/                STL + zip export
+  image/                image → grayscale height map
+  geometry/
+    layout.ts           shared dimensions for every part
+    frame.ts            frame: floor, posts, bottom rails, grooves
+    lidFrame.ts         lid: top band, panel recess, pegs / magnet holes
+    lithophanePanel.ts  lithophane panel mesh
+    assembly.ts         builds every part, in place and in print orientation
+    coupons.ts          test pieces cut from the real parts
+    validate.ts         flags settings that produce unprintable parts
+    mCsg.ts             manifold-3d helpers (with WASM memory cleanup)
+  export/               STL and zip export
+scripts/                command-line export of the test pieces
 ```
 
-## Parameters
+### Testing
 
-Cube size, post size, panel thickness, lithophane min/max thickness, groove
-clearance, lid attachment (press-fit pegs or magnets), relief direction,
-brightness invert, and cable-hole diameter are all adjustable live in the
-sidebar. Combinations that would produce unprintable or colliding parts are
-flagged there.
+`npm test` includes a geometry sweep: it builds the whole cube for 150 random
+combinations of the sidebar settings and checks that every part is a single
+valid solid, nothing overlaps, the side panels slide in, the lid lowers on
+cleanly, the cube has the right dimensions and every panel sits at the same
+depth. Run a deeper sweep before a release:
 
-## Printing
+```bash
+GEOMETRY_SAMPLES=3000 npm test
+```
 
-The printing guide is part of the app: open **printing guide** under the title,
-or go to `/guide` (source: [`app/guide/page.tsx`](app/guide/page.tsx)). It
-covers a short printer tune-up, the fit test pieces (groove and peg
-clearance), lithophane slicer settings with a brightness test, and assembly.
+### Contributing
 
-## Testing
+Issues and pull requests are welcome: bugs, features, or a report of how the
+cube printed on your printer (include your printer, filament and the
+clearances that worked). Please run `npm test` before opening a PR.
 
-`npm test` builds the full cube for 150 random parameter combinations and
-checks that every part is a single valid solid, nothing overlaps, the side
-panels slide in and the lid lowers on cleanly. Run a deeper sweep before a
-release with `GEOMETRY_SAMPLES=3000 npm test`.
-
-## Contributing
-
-Issues and pull requests are welcome, whether it's a bug, a fit that didn't
-work on your printer (include your clearances and printer/material), or a new
-feature. Run `npm test` before opening a PR; it builds the cube across random
-parameter combinations and catches most geometry regressions.
-
-## License
+### License
 
 [MIT](LICENSE)
