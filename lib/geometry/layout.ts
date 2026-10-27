@@ -7,7 +7,11 @@ import type { Params, PanelSlot } from './types';
  * with the frame. Every face is framed by a band `cornerReach` wide: the posts
  * at the sides, a rail along the floor at the bottom and the lid at the top,
  * so each panel shows a square image window. The lid is the top `cornerReach`
- * of the frame; the posts stop there.
+ * of the frame; the posts stop there, apart from a small support at each inner
+ * corner that the top panel rests on.
+ *
+ * All five panels are the same square: the window plus an `engage`-wide border
+ * on every edge, which rides in a groove on all four sides.
  */
 export interface CubeLayout {
   C: number; // cube outer size
@@ -42,19 +46,19 @@ export interface CubeLayout {
   lidRecess: number;
   /** Z of the post tops, where the lid sits. */
   postTop: number;
-  /** Z of the side-panel tops, where the top panel rests. */
-  panelTop: number;
+  /** Z of the top panel's underside: the top of the corner supports and of the lid's skirts. */
+  topPanelBase: number;
+  /** Half-size of every panel: the window plus its `engage` border. Side panels span ±panelEdge in Z. */
+  panelEdge: number;
   /** Half-size of the square image window on every face (= post inner face). */
   windowHalf: number;
-  /** Inner face of the bottom rails and lid rails that form the top/bottom grooves. */
+  /** Inner face of the bottom rails and lid skirts that form the bottom/top grooves. */
   railInner: number;
-  /** Outer face of the side panels — the top panel and its recess reach this far. */
+  /** Outer face of the side panels. */
   panelOuter: number;
-  /** Top panel footprint (square, corners notched around the posts). */
+  /** Top panel footprint — the same square as the side panels. */
   topPanelW: number;
   topPanelD: number;
-  /** Size of the square notch cut from each top-panel corner to clear a post. */
-  topNotch: number;
   /** Side of the solid square at each post's outer corner, clear of the grooves. */
   postCornerSolid: number;
   /** Distance of each peg / magnet axis from the cube centre along X and Y. */
@@ -94,26 +98,29 @@ export function cubeLayout(params: Params): CubeLayout {
   const lidRing = lidLip + lidRecess;
   const lidThickness = cornerReach;
   const postTop = half - lidThickness;
-  const panelTop = half - lidRing;
+  const topPanelBase = half - lidRing;
   const windowHalf = half - cornerReach;
+  const panelEdge = windowHalf + engage;
 
   const panelOffset = half - p / 2; // recessed inside the posts
-  const sidePanelW = C - 2 * cornerReach + 2 * engage;
-  // Panels stand on the floor top and reach up into the lid, under the top panel.
-  const floorTop = -half + params.bottomThickness;
-  const sidePanelH = panelTop - floorTop;
-  const sidePanelCenterZ = (panelTop + floorTop) / 2;
-  const railInner = panelOffset - t / 2 - clear - RAIL_INNER_WALL;
+  // Square, centred on the window: the bottom border sits in the frame's bottom
+  // groove and the top border in the lid's, `engage` deep like the side grooves.
+  const sidePanelW = 2 * panelEdge;
+  const sidePanelH = sidePanelW;
+  const sidePanelCenterZ = 0;
+  // The inner groove wall is RAIL_INNER_WALL thick where there is room, but
+  // always stays `clear` outside the top panel's edge: the lid's skirts carry
+  // this wall down past the top panel as the lid is lowered.
+  const railInner = Math.max(panelOffset - t / 2 - clear - RAIL_INNER_WALL, panelEdge + clear);
   const grooveCenter = half - cornerReach + (engage + clear) / 2;
 
   const railW = C - 2 * cornerReach; // post-inner-face to post-inner-face
 
-  // Top panel: rests on the side-panel top edges, reaching their outer faces,
-  // with each corner notched to clear a post (plus clearance).
   const panelOuter = panelOffset + t / 2;
-  const topPanelW = 2 * panelOuter;
-  const topPanelD = topPanelW;
-  const topNotch = panelOuter - (half - cornerReach) + clear;
+  // The top panel is the same square as the sides. Its corners rest on the
+  // posts' corner supports, and the lid traps it from above.
+  const topPanelW = sidePanelW;
+  const topPanelD = sidePanelW;
 
   // Pegs / magnets sit in the solid square at each post's outer corner, which
   // starts where the grooves and the inner-corner pocket end.
@@ -155,13 +162,13 @@ export function cubeLayout(params: Params): CubeLayout {
     lidLip,
     lidRecess,
     postTop,
-    panelTop,
+    topPanelBase,
+    panelEdge,
     windowHalf,
     railInner,
     panelOuter,
     topPanelW,
     topPanelD,
-    topNotch,
     postCornerSolid,
     attachOffset,
     attachHoleD,

@@ -36,8 +36,8 @@ hold them together. Put a light inside and all five pictures light up.
 **The cube**
 - Any size from 40 to 200 mm, with adjustable post size, panel thickness and
   floor thickness.
-- Every face is framed evenly on all four sides, so all five pictures look the
-  same.
+- Every face is framed evenly on all four sides, and all five panels are the
+  same square, so all five pictures look the same.
 - The lid attaches with **printed press-fit pegs** (no extra parts) or **glued
   magnets**.
 - A cable hole in the floor for the light's power lead, with adjustable size.
@@ -69,10 +69,10 @@ hold them together. Put a light inside and all five pictures light up.
 
 | Part | What it is |
 |------|------------|
-| `frame` | The floor, corner posts and bottom rails, grooved to hold each side panel. A peg or magnet hole in each post top and a cable hole in the floor. |
-| `side-*` ×4 | The side lithophane panels. Their borders are hidden in the grooves. |
-| `top` | The top lithophane panel, with notched corners to clear the posts. |
-| `lid` | The top band of the cube. It frames the top panel, covers the side panels' top edges and traps the top panel in place. |
+| `frame` | The floor, corner posts and bottom rails, grooved to hold each side panel, plus a small support at each post's inner corner for the top panel. A peg or magnet hole in each post top and a cable hole in the floor. |
+| `side-*` ×4 | The side lithophane panels. Their 5 mm borders are hidden in the grooves on all four edges. |
+| `top` | The top lithophane panel: the same square as the sides. It rests on the corner supports. |
+| `lid` | The top band of the cube. It frames the top panel, holds the side panels' top edges in a groove and traps the top panel in place. |
 
 ---
 
@@ -125,7 +125,7 @@ lib/
   image/                image → grayscale height map
   geometry/
     layout.ts           shared dimensions for every part
-    frame.ts            frame: floor, posts, bottom rails, grooves
+    frame.ts            frame: floor, posts, bottom rails, grooves, corner supports
     lidFrame.ts         lid: top band, panel recess, pegs / magnet holes
     lithophanePanel.ts  lithophane panel mesh
     assembly.ts         builds every part, in place and in print orientation

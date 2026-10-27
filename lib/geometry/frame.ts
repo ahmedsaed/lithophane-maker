@@ -3,7 +3,7 @@ import type { Params } from './types';
 import { cubeLayout, type CubeLayout } from './layout';
 import {
   mBox, mCylinderZ,
-  mUnionAll, mSubtract,
+  mUnionAll, mSubtract, mUnion,
   manifoldToGeometry, withManifoldScope,
   type Manifold,
 } from './mCsg';
@@ -12,14 +12,13 @@ const eps = 0.02;
 const guideDepth = 2;
 
 /**
- * Rails along each face between the posts, from z0 to z1, reaching from the
- * cube face in to `innerFace`. The frame's bottom rails reach past the panel
- * (outer wall + inner wall, with the groove cut by panelSlotCutters); the lid's
- * are an outer skirt only, since the top panel overlaps the side-panel tops.
+ * Rails along each face between the posts, from z0 to z1: an outer wall flush
+ * with the cube face and an inner wall, with the panel groove cut between them
+ * by panelSlotCutters. The frame's bottom rails and the lid's skirts are the
+ * same rail, so the top and bottom of every face are framed alike.
  */
-export function faceRails(L: CubeLayout, z0: number, z1: number, innerFace = L.railInner): Manifold[] {
-  const { half } = L;
-  const railInner = innerFace;
+export function faceRails(L: CubeLayout, z0: number, z1: number): Manifold[] {
+  const { half, railInner } = L;
   const inner = half - L.cornerReach;
   const len = 2 * (inner + eps); // overlap the posts so the union fuses
   const depth = half - railInner;
@@ -36,11 +35,10 @@ export function faceRails(L: CubeLayout, z0: number, z1: number, innerFace = L.r
 
 /**
  * Everything cut to receive the panels between z0 and z1: the vertical post
- * grooves, the inner-corner pockets and (with `railSlots`) the horizontal panel
- * slots through the rails. Cutters run eps past z0/z1 so no face is coplanar
- * with the solid.
+ * grooves and the horizontal panel slots through the rails. Cutters run eps
+ * past z0/z1 so no face is coplanar with the solid.
  */
-export function panelSlotCutters(L: CubeLayout, z0: number, z1: number, railSlots = true): Manifold[] {
+export function panelSlotCutters(L: CubeLayout, z0: number, z1: number): Manifold[] {
   const { t, clear, engage, grooveCenter } = L;
   const slotW = t + 2 * clear;
   const slotD = engage + clear;
@@ -58,13 +56,6 @@ export function panelSlotCutters(L: CubeLayout, z0: number, z1: number, railSlot
     }
   }
 
-  // Inner-corner removal — size grooveD+eps so faces don't coincide with slots.
-  const gi = grooveCenter - guideDepth / 2;
-  for (const [sx, sy] of L.corners) {
-    tools.push(mBox(grooveD + eps, grooveD + eps, h, sx * gi, sy * gi, zc));
-  }
-
-  if (!railSlots) return tools;
   // Panel slots through the rails, spanning the panel width plus clearance.
   const span = L.sidePanelW + 2 * clear;
   for (const s of [1, -1] as const) {
@@ -97,7 +88,9 @@ function buildFrameScoped(params: Params): BufferGeometry {
   const floor = mBox(L.C, L.C, bottomThickness, 0, 0, -half + bottomThickness / 2);
   const frame = mUnionAll([...posts, floor, ...faceRails(L, floorTop - eps, railTop)]);
 
-  const tools = panelSlotCutters(L, floorTop, postTop);
+  // Grooves start `engage` below the window, so each panel stands in its bottom
+  // groove rather than on the floor.
+  const tools = panelSlotCutters(L, -L.panelEdge, postTop);
 
   // Peg / magnet holes in the post tops, centred in the solid outer corner.
   for (const [sx, sy] of L.corners) {
@@ -111,5 +104,19 @@ function buildFrameScoped(params: Params): BufferGeometry {
     tools.push(mCylinderZ(r, bottomThickness + 2 * eps, hole.x, hole.y, -half + bottomThickness / 2));
   }
 
-  return manifoldToGeometry(mSubtract(frame, mUnionAll(tools)));
+  return manifoldToGeometry(mUnion(mSubtract(frame, mUnionAll(tools)), mUnionAll(cornerSupports(L))));
+}
+
+/**
+ * A column at each post's inner corner, rising from the post top to the top
+ * panel's underside. The top panel's corners rest on these, clear of the side
+ * panels, and the lid traps it from above. They sit behind the lid's band, so
+ * they are never seen. Each reaches eps down into its post so the union fuses.
+ */
+export function cornerSupports(L: CubeLayout): Manifold[] {
+  const size = L.engage; // exactly the top panel's corner border
+  const h = L.topPanelBase - L.postTop + eps;
+  const c = L.windowHalf + size / 2;
+  return L.corners.map(([sx, sy]) =>
+    mBox(size, size, h, sx * c, sy * c, (L.topPanelBase + L.postTop - eps) / 2));
 }

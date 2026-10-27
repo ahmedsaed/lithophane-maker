@@ -115,6 +115,26 @@ function assemblyProblemsScoped(params: Params): string[] {
     problems.push(`top panel sits ${topDepth.toFixed(2)} mm deep but side panels ${sideDepth.toFixed(2)} mm`);
   }
 
+  // Every panel rests on the frame (side panels in their bottom groove, the top
+  // panel on the corner supports): nudged down, each must run into it. And all
+  // five are the same square.
+  for (const id of ['front', 'back', 'left', 'right', 'top'] as const) {
+    const v = mIntersect(mTranslate(solids.get(id)!, 0, 0, -0.2), frame).volume();
+    if (!(v > OVERLAP_TOL)) problems.push(`${id} panel isn't supported by the frame`);
+  }
+  const footprint = (id: PartId) => {
+    const b = solids.get(id)!.boundingBox();
+    return [0, 1, 2].map((a) => b.max[a] - b.min[a]).sort((x, y) => y - x).slice(0, 2);
+  };
+  const [w, h] = footprint('front');
+  for (const id of ['back', 'left', 'right', 'top'] as const) {
+    const [w2, h2] = footprint(id);
+    if (Math.abs(w2 - w) > 0.01 || Math.abs(h2 - h) > 0.01) {
+      problems.push(`${id} panel is ${w2.toFixed(2)}×${h2.toFixed(2)}, front is ${w.toFixed(2)}×${h.toFixed(2)}`);
+    }
+  }
+  if (Math.abs(w - h) > 0.01) problems.push(`panels aren't square (${w.toFixed(2)}×${h.toFixed(2)})`);
+
   // The lid must lower straight down onto the cube: part-way on, its pegs are
   // inside the post holes and nothing may collide.
   const lid = solids.get('lid')!;

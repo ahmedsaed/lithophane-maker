@@ -11,17 +11,18 @@ const README = `Lithophane Cube — printable parts
 
 Files:
   frame.stl       Four corner posts and bottom rails on a solid floor, grooved
-                  to hold the side panels' side and bottom edges, a peg/magnet
-                  hole in each post top and the optional cable hole(s) in the
-                  floor. Print as-is, no supports.
-  lid.stl         The top band of the cube. Its skirts cover the side panels'
-                  top edges, so every face is framed on all four sides.
-                  Already face-down: print as-is, no supports.
+                  to hold the side panels' side and bottom edges. A small
+                  support rises from each post's inner corner for the top
+                  panel to rest on. A peg/magnet hole in each post top and the
+                  optional cable hole(s) in the floor. Print as-is, no supports.
+  lid.stl         The top band of the cube. Its skirts hold the side panels'
+                  top edges in a groove, so every face is framed on all four
+                  sides. Already face-down: print as-is, no supports.
   side-*.stl      The four side panels (lithophane plates with a flat border
                   that rides in the grooves). Exported standing on their
                   bottom edge: print them that way, with a 5 mm brim.
-  top.stl         The top panel, also standing. Corners are notched to clear
-                  the posts.
+  top.stl         The top panel: the same square as the side panels, also
+                  exported standing.
   *-blank.stl     Plain panels for slots without a photo: one even thickness
                   that glows about as brightly as an average photo. Swap in a
                   photo panel later, or keep them for a plain side.
@@ -30,8 +31,9 @@ Assembly:
   1. Slide each side panel down into the frame's corner grooves until it
      seats in the bottom groove.
   2. Put your light source inside, routing its cable through the floor hole.
-  3. Lay the top panel on the side panels, notched corners over the posts.
-  4. Press the lid down onto the posts. It traps the top panel.
+  3. Lay the top panel on the four corner supports.
+  4. Press the lid down onto the posts. Its skirts slide over the side
+     panels' top edges and it traps the top panel.
      Magnet version: glue one magnet into each post top and each lid corner
      first, checking each pair attracts before the glue sets.
 

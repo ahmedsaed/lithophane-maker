@@ -7,7 +7,7 @@ export const DEFAULT_PARAMS: Params = {
   panelThickness: 3,
   lithoMin: 0.7,
   lithoMax: 2.8,
-  grooveClearance: 0.3,
+  grooveClearance: 0.2,
   tongueWidth: 5,
   invert: false,
   relief: 'outward',

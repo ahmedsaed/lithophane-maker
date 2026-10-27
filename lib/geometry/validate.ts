@@ -7,6 +7,12 @@ export const MIN_WALL = 1.2;
 /** Lowest rail (above the floor, or below the lid plate) that still holds a panel edge (mm). */
 export const MIN_RAIL_HEIGHT = 2;
 
+/** Thinnest inner wall for the top and bottom grooves (≈ 2 lines at 0.4 mm) (mm). */
+export const MIN_INNER_WALL = 0.8;
+
+/** Least gap between the side panels' top borders and the top panel above them (mm). */
+export const MIN_TOP_GAP = 0.5;
+
 /** Thinnest press-fit peg we trust to survive printing and pressing (mm). */
 export const MIN_PEG_DIAMETER = 3;
 
@@ -55,7 +61,16 @@ export function validateParams(params: Params): ParamIssue[] {
       `Bottom thickness leaves no room for the bottom groove. Reduce it to ${Math.floor(L.cornerReach - MIN_RAIL_HEIGHT)} mm or less, or increase post size.`,
     );
   }
-  if (L.panelTop - L.postTop < MIN_RAIL_HEIGHT) {
+  // The inner wall of the top and bottom grooves gives way to the top panel's
+  // edge when space is tight; it must stay thick enough to print.
+  const innerWall = L.panelOffset - L.t / 2 - L.clear - L.railInner;
+  if (innerWall < MIN_INNER_WALL) {
+    error('The top and bottom groove walls are too thin for this panel thickness. Reduce panel thickness or increase post size.');
+  }
+
+  // The top panel rests on the corner supports above the side panels' top
+  // borders; it needs room there for the borders and their groove clearance.
+  if (L.topPanelBase - (L.panelEdge + L.clear) < MIN_TOP_GAP) {
     error('Panels are too thick for the lid to hold them. Reduce panel thickness or increase post size.');
   }
 

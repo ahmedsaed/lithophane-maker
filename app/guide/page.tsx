@@ -292,8 +292,8 @@ export default function GuidePage() {
         <ol>
           <li>Slide each side panel down the corner grooves until it seats in the bottom groove. Each file is named for its side, so match them up.</li>
           <li>Place the light inside and route its cable through the floor hole.</li>
-          <li>Lay the top panel on the side panels, with its notched corners over the posts.</li>
-          <li>Press the lid down onto the posts. It traps the top panel.</li>
+          <li>Lay the top panel on the four small supports at the posts’ inner corners.</li>
+          <li>Press the lid down onto the posts. Its skirts slide over the side panels’ top edges, and it traps the top panel.</li>
         </ol>
       </section>
 
