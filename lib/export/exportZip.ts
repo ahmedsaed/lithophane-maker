@@ -34,8 +34,9 @@ Assembly:
   3. Lay the top panel on the four corner supports.
   4. Press the lid down onto the posts. Its skirts slide over the side
      panels' top edges and it traps the top panel.
-     Magnet version: glue one magnet into each post top and each lid corner
-     first, checking each pair attracts before the glue sets.
+     Magnet version: first press one magnet into each post top and each lid
+     corner (glue any that are loose). Check every pair attracts BEFORE
+     pressing it in: a pressed-in magnet may not come out again.
 
 Tips:
   - Lithophanes: plain white PLA, standing up as exported, 0.1-0.12 mm
@@ -109,7 +110,8 @@ TEST KIT (current settings)
         Too loose: falls out when you lift it          -> lower "Peg clearance",
                    or make "Peg depth" longer.
       Magnets: press a magnet into each hole. It should go in snugly and sit
-      flush or slightly below the surface. Glue it if it's loose.
+      flush or slightly below the surface. It may then hold by friction alone;
+      glue it if it's loose. Check polarity first, since it may not come out.
 
   litho-steps.stl
       A 10-step brightness wedge (black -> white) using your min/max thickness

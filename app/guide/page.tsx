@@ -195,12 +195,15 @@ export default function GuidePage() {
         </p>
         <p><strong>Test:</strong> press a magnet into each hole.</p>
         <ul>
-          <li><strong>Good:</strong> it goes in snugly and sits flush or slightly below the surface. Add a drop of glue in the final build.</li>
+          <li><strong>Good:</strong> it goes in snugly and sits flush or slightly below the surface. On many printers it then holds by friction alone, firmly enough that it can’t be pulled back out.</li>
+          <li><strong>Loose:</strong> it slides out on its own. Fit it with a drop of glue in the final build.</li>
           <li><strong>Doesn’t fit:</strong> check the <Setting>Magnet diameter / height</Setting> settings match your magnets.</li>
         </ul>
         <div className="guide-note warn">
-          When gluing, <strong>check every pair attracts before the glue sets.</strong> A
-          flipped magnet repels the lid.
+          <strong>Check the polarity before pressing each magnet in.</strong> A pressed-in
+          magnet may never come out again, and a flipped one repels the lid. Stack the
+          magnet for a lid corner on the one for the post below it, mark the face that
+          points down, and press it in that way.
         </div>
       </section>
 

@@ -168,7 +168,7 @@ export default function ParamsPanel() {
           description={
             params.lidAttach === 'pressfit'
               ? 'Fully printed: pegs under the lid press into holes in the posts.'
-              : 'Glue a disc magnet into each post top and each lid corner (8 total). Check the polarity before the glue sets.'
+              : 'Press a disc magnet into each post top and each lid corner (8 total); glue any that are loose. Check the polarity first: a pressed-in magnet may not come out again.'
           }
         />
         {params.lidAttach === 'pressfit' ? (

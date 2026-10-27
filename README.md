@@ -38,8 +38,8 @@ hold them together. Put a light inside and all five pictures light up.
   floor thickness.
 - Every face is framed evenly on all four sides, and all five panels are the
   same square, so all five pictures look the same.
-- The lid attaches with **printed press-fit pegs** (no extra parts) or **glued
-  magnets**.
+- The lid attaches with **printed press-fit pegs** (no extra parts) or **disc
+  magnets** pressed into the posts and lid.
 - A cable hole in the floor for the light's power lead, with adjustable size.
 - Lithophane thickness range and relief direction (outward or inward).
 
