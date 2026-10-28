@@ -190,7 +190,10 @@ export default function GuidePage() {
           tight="it needs force or stops before the bottom."
           loose="it drops in and rattles."
         />
-        <p><strong>Set:</strong> <Setting>Fit → Groove clearance</Setting> to the tightest post that passes.</p>
+        <p>
+          <strong>Set:</strong> <Setting>Fit → Groove clearance</Setting> to the tightest post that
+          passes, <strong>plus one step (0.05 mm)</strong>. See the note below.
+        </p>
 
         <h3>Lid fit (Peg clearance), press-fit lids</h3>
         <p>
@@ -212,9 +215,19 @@ export default function GuidePage() {
           the light, so it has to keep gripping.
         </p>
         <p>
-          <strong>Set:</strong> <Setting>Fit → Peg clearance</Setting> to that one. If even
-          the tightest is loose, raise <Setting>Peg depth</Setting>.
+          <strong>Set:</strong> <Setting>Fit → Peg clearance</Setting> to that one,{' '}
+          <strong>plus one step (0.05 mm)</strong>. If even the tightest is loose, raise{' '}
+          <Setting>Peg depth</Setting>.
         </p>
+
+        <div className="guide-note warn">
+          <strong>Why one step looser:</strong> the full cube binds more than the small test
+          pieces. A panel slides along an 81 mm groove instead of 15 mm, tall posts bow a
+          little, and the lid has to seat four pegs at once. A fit that feels just right as a
+          test piece takes real force at full size and can snap a peg. The defaults (0.25 mm
+          groove, 0.15 mm peg) are already one step looser than the test pieces that fit best
+          on the maker’s printer.
+        </div>
 
         <h3>Magnet fit, magnet lids</h3>
         <p>
@@ -339,9 +352,9 @@ export default function GuidePage() {
           head={['Problem', 'Likely cause', 'Fix']}
           rows={[
             ['Panel won’t reach the bottom groove', 'Elephant foot on the panel or frame', <>Turn on elephant foot compensation (<a key="t" href="#tune">step 1</a>)</>],
-            ['Panels fit the test piece but not the real frame', 'Different layer height or profile than the test', 'Print the test pieces with the same profiles as the real parts'],
+            ['Panels fit the test piece but are hard to push into the real frame', 'Full-size parts bind more than test pieces', <>Raise <Setting>Groove clearance</Setting> one step (0.05 mm), or check the test pieces used the same profiles as the real parts</>],
             ['Lid falls off', 'Peg clearance too high', <>Lower <Setting>Peg clearance</Setting> or raise <Setting>Peg depth</Setting></>],
-            ['Lid pegs snapped', 'Peg clearance too low', <>Raise <Setting>Peg clearance</Setting></>],
+            ['Lid needs a lot of force, or pegs snapped', 'Peg clearance too low for four pegs at full size', <>Raise <Setting>Peg clearance</Setting> one step (0.05 mm)</>],
             ['Rings or steps in smooth gradients', 'Panel printed lying flat', 'Print it standing up, as exported'],
             ['Grid pattern visible in the image', 'Panel printed flat, or infill below 100 %', 'Print standing up with 100 % infill'],
             ['Panel wobbled or tipped over while printing', 'Tall, thin part with too little bed grip', 'Use a 5 mm (or wider) brim, slow down, and space panels apart'],
