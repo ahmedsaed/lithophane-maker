@@ -129,13 +129,20 @@ CLEARANCE SWEEP
 
   groove-post-<clearance>mm-<N>dots.stl x5 + panel-strip.stl
       The same corner post at five groove clearances. The engraved dots on the
-      floor tell them apart (1 dot = tightest). Try the strip in each one and
-      set "Groove clearance" to the tightest one that slides in without force.
+      floor tell them apart (1 dot = tightest). Try the strip in each one, find
+      the tightest one that slides in without force, and set "Groove clearance"
+      ONE STEP LOOSER (+0.05 mm) than that.
 
   lid-corner-peg-<clearance>mm-<N>dots.stl x5 + post-top.stl  (press-fit only)
       Lid corners whose pegs range from tight (1 dot, 0 mm) to loose (5 dots).
-      The dots are on the face that prints on top. Try each in the post top and
-      set "Peg clearance" to the one that grips best while still going in.
+      The dots are on the face that prints on top. Try each in the post top,
+      find the one that grips best while still going in, and set "Peg
+      clearance" ONE STEP LOOSER (+0.05 mm) than that.
+
+  Why one step looser: the full cube binds more than these small pieces. A
+  panel slides along an 81 mm groove instead of 15 mm, tall posts bow a
+  little, and the lid seats four pegs at once. A fit that feels just right
+  here takes real force at full size and can snap a peg.
 `;
 
 /** Bundle a set of test coupons with instructions into one zip download. */
