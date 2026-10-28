@@ -12,7 +12,7 @@ describe('settings in the download', () => {
     const json = JSON.parse(settingsJson(DEFAULT_PARAMS, photos, new Date('2026-10-27T00:00:00Z')));
     expect(json.params).toEqual(DEFAULT_PARAMS);
     expect(json.exportedAt).toBe('2026-10-27T00:00:00.000Z');
-    expect(json.derived.frameWidth).toBe(14.45);
+    expect(json.derived.frameWidth).toBe(14.4);
     expect(json.photos.front.crop).toEqual(photos.front.crop);
     expect(json.photos.back).toBeNull();
   });
@@ -24,14 +24,14 @@ describe('settings in the download', () => {
       /Cable hole\.+ 8 mm/,
       /Attach with\.+ Press-fit/,
       /Peg depth\.+ 8 mm/,
-      /Groove clearance\.+ 0\.25 mm/,
-      /Peg clearance\.+ 0\.15 mm/,
+      /Groove clearance\.+ 0\.2 mm/,
+      /Peg clearance\.+ 0\.1 mm/,
       /Min thickness \(bright\)\.+ 0\.7 mm/,
       /Max thickness \(dark\)\.+ 2\.8 mm/,
       /Gamma\.+ 0\.45/,
       /Textured side\.+ Outside/,
       /Resolution\.+ 5 px\/mm/,
-      /frame 14\.45 mm wide, picture 71\.1 mm square/,
+      /frame 14\.4 mm wide, picture 71\.2 mm square/,
     ]) expect(text).toMatch(line);
   });
 

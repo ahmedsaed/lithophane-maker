@@ -29,13 +29,24 @@ Files:
                   that glows about as brightly as an average photo. Swap in a
                   photo panel later, or keep them for a plain side.
 
+Before you assemble:
+  - DEBURR EVERY PANEL EDGE. Peeling the brim off leaves a ridge along the
+    bottom edge, and the first layers often bulge out a little. Either one
+    makes a panel bind in its groove. Scrape all four edges of each panel's
+    border smooth with a deburring tool or craft knife.
+  - Clean any strings or blobs out of the frame's grooves and post holes.
+  - The corner posts may lean out slightly; the side panels pull them
+    straight once they're in.
+
 Assembly:
   1. Slide each side panel down into the frame's corner grooves until it
      seats in the bottom groove.
   2. Put your light source inside, routing its cable through the floor hole.
   3. Lay the top panel on the four corner supports.
-  4. Press the lid down onto the posts. Its skirts slide over the side
-     panels' top edges and it traps the top panel.
+  4. Push the posts upright so the lid's corners line up over them, then
+     press the lid STRAIGHT down. Its skirts slide over the side panels' top
+     edges and it traps the top panel. Don't rock it on: a peg pushed in at
+     an angle can snap. Take the lid on and off as little as you can.
      Magnet version: first press one magnet into each post top and each lid
      corner (glue any that are loose). Check every pair attracts BEFORE
      pressing it in: a pressed-in magnet may not come out again.
@@ -97,7 +108,8 @@ TEST KIT (current settings)
 
   groove-post.stl + panel-strip.stl
       The bottom of a corner post and the bottom corner of a side panel.
-      Print the strip standing, as exported, like a real panel. Hold it
+      Print the strip standing, as exported, like a real panel, and deburr
+      its edges after peeling the brim, as you will the panels. Hold it
       bottom edge down and slide its side edge into either groove until the
       bottom edge seats in the bottom groove.
       Good:      slides in by hand with light friction, stands upright, little wobble.
@@ -129,20 +141,13 @@ CLEARANCE SWEEP
 
   groove-post-<clearance>mm-<N>dots.stl x5 + panel-strip.stl
       The same corner post at five groove clearances. The engraved dots on the
-      floor tell them apart (1 dot = tightest). Try the strip in each one, find
-      the tightest one that slides in without force, and set "Groove clearance"
-      ONE STEP LOOSER (+0.05 mm) than that.
+      floor tell them apart (1 dot = tightest). Try the strip in each one and
+      set "Groove clearance" to the tightest one that slides in without force.
 
   lid-corner-peg-<clearance>mm-<N>dots.stl x5 + post-top.stl  (press-fit only)
       Lid corners whose pegs range from tight (1 dot, 0 mm) to loose (5 dots).
-      The dots are on the face that prints on top. Try each in the post top,
-      find the one that grips best while still going in, and set "Peg
-      clearance" ONE STEP LOOSER (+0.05 mm) than that.
-
-  Why one step looser: the full cube binds more than these small pieces. A
-  panel slides along an 81 mm groove instead of 15 mm, tall posts bow a
-  little, and the lid seats four pegs at once. A fit that feels just right
-  here takes real force at full size and can snap a peg.
+      The dots are on the face that prints on top. Try each in the post top and
+      set "Peg clearance" to the one that grips best while still going in.
 `;
 
 /** Bundle a set of test coupons with instructions into one zip download. */

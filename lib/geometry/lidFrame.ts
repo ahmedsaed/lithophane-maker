@@ -14,9 +14,13 @@ import {
 } from './mCsg';
 
 const eps = 0.02;
-/** Height of the tapered lead-in at each peg tip, and how much narrower the tip is (mm). */
-const PEG_LEAD_IN = 0.6;
-const PEG_TIP_INSET = 0.4;
+/**
+ * Height of the tapered lead-in at each peg tip, and how much narrower the tip
+ * is (mm). Long and gentle, so a peg finds its hole even when a post leans a
+ * little, instead of catching on the rim and levering against its base.
+ */
+const PEG_LEAD_IN = 1.5;
+const PEG_TIP_INSET = 0.6;
 
 /**
  * Lid — the top band of the cube, `cornerReach` tall so every side face shows
@@ -80,7 +84,7 @@ function buildLidFrameScoped(params: Params): BufferGeometry {
     if (params.lidAttach === 'magnet') {
       cuts.push(mCylinderZ(L.attachHoleD / 2, 2 * L.postHoleDepth, x, y, postTop, 48));
     } else {
-      // Peg reaches eps up into the lid so it fuses; the tip tapers for an easy start.
+      // Peg reaches eps up into the lid so it fuses; the tip tapers so it self-centres.
       const r = L.attachHoleD / 2 - params.pegClearance;
       const shaftH = params.pegDepth - PEG_LEAD_IN + eps;
       pegs.push(mCylinderZ(r, shaftH, x, y, postTop + eps - shaftH / 2, 48));
