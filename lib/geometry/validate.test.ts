@@ -149,21 +149,21 @@ describe('validateParams', () => {
   });
 
   it('sizes the frame to what the posts hold', () => {
-    // 5 mm border + 0.25 clearance + 6.8 mm peg hole + 2 × 1.2 mm walls.
-    expect(frameWidth(DEFAULT_PARAMS)).toBeCloseTo(14.45, 6);
+    // 5 mm border + 0.2 clearance + 6.8 mm peg hole + 2 × 1.2 mm walls: the tested cube.
+    expect(frameWidth(DEFAULT_PARAMS)).toBeCloseTo(14.4, 6);
     // A 6 mm magnet's 6.2 mm hole is smaller than the peg's.
-    expect(frameWidth({ ...DEFAULT_PARAMS, lidAttach: 'magnet' })).toBeCloseTo(13.85, 6);
+    expect(frameWidth({ ...DEFAULT_PARAMS, lidAttach: 'magnet' })).toBeCloseTo(13.8, 6);
   });
 
   it('widens the frame for large magnets instead of rejecting them', () => {
     const p = { ...DEFAULT_PARAMS, lidAttach: 'magnet' as const, magnetDiameter: 10 };
-    expect(frameWidth(p)).toBeGreaterThan(frameWidth(DEFAULT_PARAMS));
+    expect(frameWidth(p)).toBeGreaterThan(14.4);
     expect(validateParams(p)).toEqual([]);
   });
 
   it('widens the frame for thick panels instead of rejecting them', () => {
     const p = { ...DEFAULT_PARAMS, lithoMax: 5 };
-    expect(frameWidth(p)).toBeGreaterThan(frameWidth(DEFAULT_PARAMS));
+    expect(frameWidth(p)).toBeGreaterThan(14.4);
     expect(validateParams(p).filter((i) => i.severity === 'error')).toEqual([]);
   });
 

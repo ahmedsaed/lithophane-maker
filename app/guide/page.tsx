@@ -181,7 +181,8 @@ export default function GuidePage() {
           rows={[['Groove clearance', '0.15 mm', '0.20 mm', '0.25 mm', '0.30 mm', '0.35 mm']]}
         />
         <p>
-          <strong>Test:</strong> hold the strip the way it printed, bottom edge down, and
+          <strong>Test:</strong> first deburr the strip’s edges after peeling its brim, as
+          you will the real panels. Then hold it the way it printed, bottom edge down, and
           slide its side edge down into each post’s groove until the bottom edge seats in
           the bottom groove. Try both grooves on each post.
         </p>
@@ -190,10 +191,7 @@ export default function GuidePage() {
           tight="it needs force or stops before the bottom."
           loose="it drops in and rattles."
         />
-        <p>
-          <strong>Set:</strong> <Setting>Fit → Groove clearance</Setting> to the tightest post that
-          passes, <strong>plus one step (0.05 mm)</strong>. See the note below.
-        </p>
+        <p><strong>Set:</strong> <Setting>Fit → Groove clearance</Setting> to the tightest post that passes.</p>
 
         <h3>Lid fit (Peg clearance), press-fit lids</h3>
         <p>
@@ -215,19 +213,9 @@ export default function GuidePage() {
           the light, so it has to keep gripping.
         </p>
         <p>
-          <strong>Set:</strong> <Setting>Fit → Peg clearance</Setting> to that one,{' '}
-          <strong>plus one step (0.05 mm)</strong>. If even the tightest is loose, raise{' '}
-          <Setting>Peg depth</Setting>.
+          <strong>Set:</strong> <Setting>Fit → Peg clearance</Setting> to that one. If even
+          the tightest is loose, raise <Setting>Peg depth</Setting>.
         </p>
-
-        <div className="guide-note warn">
-          <strong>Why one step looser:</strong> the full cube binds more than the small test
-          pieces. A panel slides along an 81 mm groove instead of 15 mm, tall posts bow a
-          little, and the lid has to seat four pegs at once. A fit that feels just right as a
-          test piece takes real force at full size and can snap a peg. The defaults (0.25 mm
-          groove, 0.15 mm peg) are already one step looser than the test pieces that fit best
-          on the maker’s printer.
-        </div>
 
         <h3>Magnet fit, magnet lids</h3>
         <p>
@@ -288,7 +276,8 @@ export default function GuidePage() {
         />
         <p>
           Print panels spaced apart rather than packed tightly, so the nozzle doesn’t knock
-          a neighbour while it’s still thin. Peel the brim off before assembly.
+          a neighbour while it’s still thin. Peel the brim off and deburr the edges before
+          assembly (see <a href="#cube">Before you assemble</a>).
         </p>
 
         <h3>Brightness test</h3>
@@ -337,13 +326,38 @@ export default function GuidePage() {
           ]}
         />
 
+        <h3>Before you assemble</h3>
+        <div className="guide-note warn">
+          <strong>Deburr every panel edge.</strong> Peeling the brim off leaves a ridge along
+          the bottom edge, and the first layers often bulge out a little. Either one is enough
+          to make a panel bind in a groove that fits it perfectly otherwise. Scrape all four
+          edges of each panel’s border with a deburring tool or a craft knife until they’re
+          smooth and straight, then check the panel slides into a groove before going on.
+        </div>
+        <ul>
+          <li>Check the frame’s grooves and post holes for strings or blobs, and clean them out.</li>
+          <li>
+            The tall corner posts can lean out slightly after printing. That’s normal: the
+            side panels pull them straight once they’re in.
+          </li>
+        </ul>
+
         <h3>Assembly</h3>
         <ol>
           <li>Slide each side panel down the corner grooves until it seats in the bottom groove. Each file is named for its side, so match them up.</li>
           <li>Place the light inside and route its cable through the floor hole.</li>
           <li>Lay the top panel on the four small supports at the posts’ inner corners.</li>
-          <li>Press the lid down onto the posts. Its skirts slide over the side panels’ top edges, and it traps the top panel.</li>
+          <li>
+            Gently push the posts upright so the lid’s corners line up over them, then press
+            the lid <strong>straight down</strong>. Its skirts slide over the side panels’ top
+            edges, and it traps the top panel. Don’t rock it on: a peg pushed in at an angle
+            can snap.
+          </li>
         </ol>
+        <p>
+          Take the lid on and off as little as you can. Each time wears the pegs and their
+          holes, and the fit gets looser.
+        </p>
       </section>
 
       <section id="troubleshooting">
@@ -351,10 +365,10 @@ export default function GuidePage() {
         <Table
           head={['Problem', 'Likely cause', 'Fix']}
           rows={[
-            ['Panel won’t reach the bottom groove', 'Elephant foot on the panel or frame', <>Turn on elephant foot compensation (<a key="t" href="#tune">step 1</a>)</>],
-            ['Panels fit the test piece but are hard to push into the real frame', 'Full-size parts bind more than test pieces', <>Raise <Setting>Groove clearance</Setting> one step (0.05 mm), or check the test pieces used the same profiles as the real parts</>],
+            ['Panel won’t reach the bottom groove', 'Brim ridge or elephant foot on the panel or frame', <>Deburr the panel’s edges (<a key="d" href="#cube">before you assemble</a>), and turn on elephant foot compensation (<a key="t" href="#tune">step 1</a>)</>],
+            ['Panels fit the test piece but not the real frame', 'Different layer height or profile than the test', 'Print the test pieces with the same profiles as the real parts'],
             ['Lid falls off', 'Peg clearance too high', <>Lower <Setting>Peg clearance</Setting> or raise <Setting>Peg depth</Setting></>],
-            ['Lid needs a lot of force, or pegs snapped', 'Peg clearance too low for four pegs at full size', <>Raise <Setting>Peg clearance</Setting> one step (0.05 mm)</>],
+            ['Lid pegs snapped', 'Posts leaning, so the lid went on at an angle; or peg clearance too low', <>Push the posts upright and press the lid straight down. If it still needs real force, raise <Setting>Peg clearance</Setting></>],
             ['Rings or steps in smooth gradients', 'Panel printed lying flat', 'Print it standing up, as exported'],
             ['Grid pattern visible in the image', 'Panel printed flat, or infill below 100 %', 'Print standing up with 100 % infill'],
             ['Panel wobbled or tipped over while printing', 'Tall, thin part with too little bed grip', 'Use a 5 mm (or wider) brim, slow down, and space panels apart'],

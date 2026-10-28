@@ -5,16 +5,14 @@ export const DEFAULT_PARAMS: Params = {
   cubeSize: 100,
   lithoMin: 0.7,
   lithoMax: 2.8,
-  // One sweep step looser than the best-fitting test pieces (0.20 / 0.10):
-  // full-size parts bind more, over longer grooves and four pegs at once.
-  grooveClearance: 0.25,
+  grooveClearance: 0.2,
   tongueWidth: 5,
   relief: 'outward',
   previewResolution: 180,
   pixelsPerMm: 5,
   lidAttach: 'pressfit',
   pegDepth: 8,
-  pegClearance: 0.15,
+  pegClearance: 0.1,
   magnetDiameter: 6,
   magnetHeight: 3,
   cableHoles: [{ diameter: 8, x: 0, y: 0 }],
