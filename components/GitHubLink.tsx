@@ -1,4 +1,6 @@
 const REPO_URL = 'https://github.com/ahmedsaed/lithophane-maker';
+/** The studio that makes this tool. */
+export const STUDIO_URL = 'https://merope.dev';
 export const ISSUES_URL = `${REPO_URL}/issues/new`;
 /** The printing guide page (app/guide). */
 export const GUIDE_URL = '/guide/';
@@ -31,6 +33,9 @@ export default function GitHubCard() {
       <p>
         This tool is MIT-licensed. Found a bug, printed a cube, or have an idea?
         Open an issue or send a pull request.
+      </p>
+      <p>
+        Lithophane Cube Maker is made by <a href={STUDIO_URL}>Merope</a>.
       </p>
       <div className="github-card-links">
         <a href={REPO_URL} target="_blank" rel="noopener noreferrer">View on GitHub</a>

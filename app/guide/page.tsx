@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { GitHubIconLink, ISSUES_URL } from '@/components/GitHubLink';
+import { GitHubIconLink, ISSUES_URL, STUDIO_URL } from '@/components/GitHubLink';
 import { SITE_NAME } from '@/lib/site';
 
 // The site's social card. A page that sets openGraph loses the image it would
@@ -390,6 +390,7 @@ export default function GuidePage() {
 
       <footer className="guide-footer">
         <Link href="/" className="guide-back">← Back to the maker</Link>
+        <p>Lithophane Cube Maker is made by <a href={STUDIO_URL}>Merope</a>.</p>
       </footer>
     </div>
   );
