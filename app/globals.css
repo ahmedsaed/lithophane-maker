@@ -507,6 +507,10 @@ h1 {
   line-height: 1.5;
 }
 
+.github-card p a {
+  color: var(--accent);
+}
+
 .github-card-links {
   display: flex;
   gap: 14px;
@@ -742,6 +746,12 @@ h1 {
   margin-top: 48px;
   border-top: 1px solid var(--border);
   padding-top: 16px;
+}
+
+.guide-footer p {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
 }
 
 /* ── Phones and narrow screens ──────────────────────────────────────────────
